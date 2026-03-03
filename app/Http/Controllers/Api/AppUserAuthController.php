@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\AppUserAuth\ForgotPasswordRequest;
+use App\Http\Requests\Api\AppUserAuth\ForgotPasswordVerifyOtpRequest;
+use App\Http\Requests\Api\AppUserAuth\LoginRequest;
+use App\Http\Requests\Api\AppUserAuth\RegisterRequest;
+use App\Http\Requests\Api\AppUserAuth\ResetPasswordRequest;
+use App\Http\Requests\Api\AppUserAuth\SocialLoginRequest;
+use App\Http\Requests\Api\AppUserAuth\VerifyRegisterOtpRequest;
+use App\Services\AppUserAuthService;
+use Closure;
+use Illuminate\Http\JsonResponse;
+use Throwable;
+
+class AppUserAuthController extends Controller
+{
+    public function __construct(
+        protected AppUserAuthService $authService
+    ) {
+    }
+
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        return $this->executeSafely(
+            fn (): array => $this->authService->requestRegistration($request->validated()),
+            201
+        );
+    }
+
+    public function verifyRegisterOtp(VerifyRegisterOtpRequest $request): JsonResponse
+    {
+        return $this->executeSafely(function () use ($request): array {
+            $data = $request->validated();
+
+            return $this->authService->completeRegistration($data['phone'], $data['otp']);
+        });
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        return $this->executeSafely(function () use ($request): array {
+            $data = $request->validated();
+
+            return $this->authService->loginByPhone($data['phone'], $data['password']);
+        });
+    }
+
+    public function socialLogin(SocialLoginRequest $request): JsonResponse
+    {
+        return $this->executeSafely(
+            fn (): array => $this->authService->socialLogin($request->validated()),
+            201
+        );
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        return $this->executeSafely(
+            fn (): array => $this->authService->forgotPassword($request->validated()['phone'])
+        );
+    }
+
+    public function forgotPasswordVerifyOtp(ForgotPasswordVerifyOtpRequest $request): JsonResponse
+    {
+        return $this->executeSafely(function () use ($request): array {
+            $data = $request->validated();
+
+            return $this->authService->verifyForgotPasswordOtp($data['phone'], $data['otp']);
+        });
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        return $this->executeSafely(function () use ($request): array {
+            $data = $request->validated();
+
+            return $this->authService->resetPassword($data['phone'], $data['password']);
+        });
+    }
+
+    private function jsonResponse(array $result, int $successStatus = 200): JsonResponse
+    {
+        if (isset($result['error'])) {
+            return response()->json([
+                'status' => false,
+                'message' => $result['error'],
+            ], $result['code'] ?? 400);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => $result['message'] ?? 'Success',
+            'data' => $result,
+        ], $successStatus);
+    }
+
+    private function executeSafely(Closure $callback, int $successStatus = 200): JsonResponse
+    {
+        try {
+            $result = $callback();
+
+            $status = $successStatus;
+
+            if (isset($result['token'])) {
+                $status = 200;
+            }
+
+            return $this->jsonResponse($result, $status);
+        } catch (Throwable $exception) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unexpected error',
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+}

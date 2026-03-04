@@ -15,13 +15,26 @@ use Illuminate\Support\Facades\Storage;
 
 class AppUserPostController extends Controller
 {
-    public function allPosts(): JsonResponse
+    public function allPosts(Request $request): JsonResponse
     {
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user('sanctum');
+
+        $followingIds = $appUser?->following()
+            ->pluck('following_app_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all() ?? [];
+
         $posts = AppUserPost::query()
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
             ->withCount(['likes', 'comments', 'reposts'])
             ->latest()
-            ->get();
+            ->get()
+            ->map(function (AppUserPost $post) use ($followingIds) {
+                $post->is_following = in_array((int) $post->app_user_id, $followingIds, true);
+
+                return $post;
+            });
 
         return response()->json([
             'status' => true,
@@ -52,6 +65,26 @@ class AppUserPostController extends Controller
 
         $posts = $appUser->posts()
             ->whereNotNull('reposted_post_id')
+            ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
+            ->withCount(['likes', 'comments', 'reposts'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $posts,
+        ]);
+    }
+
+    public function followingPosts(Request $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+
+        $followingIds = $appUser->following()->pluck('following_app_user_id');
+
+        $posts = AppUserPost::query()
+            ->whereIn('app_user_id', $followingIds)
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
             ->withCount(['likes', 'comments', 'reposts'])
             ->latest()

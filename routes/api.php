@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('posts', [AppUserPostController::class, 'index']);
     Route::get('my-posts', [AppUserPostController::class, 'myPosts']);
     Route::get('my-reposts', [AppUserPostController::class, 'myReposts']);
+    Route::get('following-posts', [AppUserPostController::class, 'followingPosts']);
     Route::post('posts', [AppUserPostController::class, 'store']);
     Route::get('posts/{id}', [AppUserPostController::class, 'show']);
     Route::post('posts/{id}', [AppUserPostController::class, 'update']);

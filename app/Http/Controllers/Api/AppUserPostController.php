@@ -8,6 +8,7 @@ use App\Http\Requests\Api\AppUserPost\UpdatePostRequest;
 use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
+use App\Models\AppUserRepost;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -63,10 +64,12 @@ class AppUserPostController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
 
-        $posts = $appUser->posts()
-            ->whereNotNull('reposted_post_id')
-            ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-            ->withCount(['likes', 'comments', 'reposts'])
+        $posts = $appUser->reposts()
+            ->with([
+                'post' => fn ($query) => $query
+                    ->with(['appUser:id,name,username'])
+                    ->withCount(['likes', 'comments', 'reposts']),
+            ])
             ->latest()
             ->get();
 
@@ -177,22 +180,23 @@ class AppUserPostController extends Controller
         $appUser = $request->user();
         $originalPost = AppUserPost::query()->findOrFail($id);
 
-        $repost = $appUser->posts()->create([
-            'content' => $originalPost->content,
-            'image' => $originalPost->image,
-            'location' => $originalPost->location,
-            'status' => 'published',
-            'published_at' => now(),
-            'reposted_post_id' => $originalPost->id,
+        $repost = AppUserRepost::query()->firstOrCreate([
+            'app_user_id' => $appUser->id,
+            'app_user_post_id' => $originalPost->id,
         ]);
 
-        $this->logActivity($appUser, 'reposted_post', $repost, $originalPost->appUser, 'Reposted a post');
+        $this->logActivity($appUser, 'reposted_post', $originalPost, $originalPost->appUser, 'Reposted a post');
 
         return response()->json([
             'status' => true,
             'message' => 'Post reposted successfully',
-            'data' => $repost->load(['appUser', 'repostedPost.appUser'])->loadCount(['likes', 'comments', 'reposts']),
-        ], 201);
+            'data' => $repost->load([
+                'appUser:id,name,username',
+                'post' => fn ($query) => $query
+                    ->with(['appUser:id,name,username'])
+                    ->withCount(['likes', 'comments', 'reposts']),
+            ]),
+        ], $repost->wasRecentlyCreated ? 201 : 200);
     }
 
     private function logActivity(AppUser $appUser, string $type, ?AppUserPost $post, ?AppUser $subject, ?string $description): void

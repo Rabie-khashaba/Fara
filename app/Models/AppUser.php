@@ -72,6 +72,11 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserPostComment::class);
     }
 
+    public function reposts(): HasMany
+    {
+        return $this->hasMany(AppUserRepost::class);
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(AppUserActivity::class);

@@ -13,6 +13,11 @@ class AppUser extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $appends = [
+        'profile_image_url',
+        'cover_photo_url',
+    ];
+
     protected $fillable = [
         'name',
         'username',
@@ -25,6 +30,8 @@ class AppUser extends Authenticatable
         'provider',
         'provider_id',
         'is_active',
+        'profile_image',
+        'cover_photo',
     ];
 
     protected $hidden = [
@@ -92,5 +99,40 @@ class AppUser extends Authenticatable
             'id',
             'app_user_post_id'
         );
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->toPublicUrl($this->profile_image);
+    }
+
+    public function getCoverPhotoUrlAttribute(): ?string
+    {
+        return $this->toPublicUrl($this->cover_photo);
+    }
+
+    private function toPublicUrl($value)
+    {
+        if (empty($value)) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            return array_map(function ($item) {
+                return $this->toPublicUrl($item);
+            }, $value);
+        }
+
+        if (preg_match('#^https?://#i', $value)) {
+            return $value;
+        }
+
+        $path = ltrim($value, '/');
+
+        if (str_starts_with($path, 'storage/')) {
+            return rtrim(config('app.url'), '/') . '/' . $path;
+        }
+
+        return rtrim(config('app.url'), '/') . '/storage/app/public/' . $path;
     }
 }

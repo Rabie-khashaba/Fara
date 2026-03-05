@@ -7,6 +7,8 @@ use App\Http\Requests\Api\AppUserProfile\UpdateProfileRequest;
 use App\Models\AppUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class AppUserProfileController extends Controller
 {
@@ -23,7 +25,23 @@ class AppUserProfileController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
 
-        $appUser->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('profile_image')) {
+            $data['profile_image'] = $this->storeProfileAsset(
+                $request->file('profile_image'),
+                $appUser->profile_image
+            );
+        }
+
+        if ($request->hasFile('cover_photo')) {
+            $data['cover_photo'] = $this->storeProfileAsset(
+                $request->file('cover_photo'),
+                $appUser->cover_photo
+            );
+        }
+
+        $appUser->update($data);
 
         return response()->json([
             'status' => true,
@@ -38,6 +56,10 @@ class AppUserProfileController extends Controller
                     'provider' => $appUser->provider,
                     'provider_id' => $appUser->provider_id,
                     'is_active' => $appUser->is_active,
+                    'profile_image' => $appUser->profile_image,
+                    'profile_image_url' => $appUser->profile_image_url,
+                    'cover_photo' => $appUser->cover_photo,
+                    'cover_photo_url' => $appUser->cover_photo_url,
                     'created_at' => $appUser->created_at,
                     'updated_at' => $appUser->updated_at,
                 ],
@@ -167,6 +189,10 @@ class AppUserProfileController extends Controller
                     'provider' => $appUser->provider,
                     'provider_id' => $appUser->provider_id,
                     'is_active' => $appUser->is_active,
+                    'profile_image' => $appUser->profile_image,
+                    'profile_image_url' => $appUser->profile_image_url,
+                    'cover_photo' => $appUser->cover_photo,
+                    'cover_photo_url' => $appUser->cover_photo_url,
                     'created_at' => $appUser->created_at,
                     'updated_at' => $appUser->updated_at,
                     'social_accounts' => $appUser->socialAccounts,
@@ -188,5 +214,18 @@ class AppUserProfileController extends Controller
                 ],
             ],
         ]);
+    }
+
+    private function storeProfileAsset(?UploadedFile $file, ?string $currentPath = null): ?string
+    {
+        if (! $file) {
+            return $currentPath;
+        }
+
+        if ($currentPath) {
+            Storage::disk('public')->delete($currentPath);
+        }
+
+        return $file->store('app-user-profiles', 'public');
     }
 }

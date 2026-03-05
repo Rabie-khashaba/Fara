@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('app-user/auth')->group(function (): void {
     Route::post('register', [AppUserAuthController::class, 'register']);
     Route::post('verify-register-otp', [AppUserAuthController::class, 'verifyRegisterOtp']);
+    Route::post('resend-register-otp', [AppUserAuthController::class, 'resendRegisterOtp']);
     Route::post('login', [AppUserAuthController::class, 'login']);
 
 
@@ -27,6 +28,11 @@ Route::prefix('app-user/auth')->group(function (): void {
     Route::post('forgot-password', [AppUserAuthController::class, 'forgotPassword']);
     Route::post('forgot-password-verify-otp', [AppUserAuthController::class, 'forgotPasswordVerifyOtp']);
     Route::post('reset-password', [AppUserAuthController::class, 'resetPassword']);
+});
+
+
+Route::middleware('auth:sanctum')->prefix('app-user/auth')->group(function (): void {
+    Route::post('logout', [AppUserAuthController::class, 'logout']);
 });
 
 Route::get('app-user/profile/{appUserId}', [AppUserProfileController::class, 'show']);

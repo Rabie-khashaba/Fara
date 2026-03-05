@@ -7,12 +7,14 @@ use App\Http\Requests\Api\AppUserAuth\ForgotPasswordRequest;
 use App\Http\Requests\Api\AppUserAuth\ForgotPasswordVerifyOtpRequest;
 use App\Http\Requests\Api\AppUserAuth\LoginRequest;
 use App\Http\Requests\Api\AppUserAuth\RegisterRequest;
+use App\Http\Requests\Api\AppUserAuth\ResendRegisterOtpRequest;
 use App\Http\Requests\Api\AppUserAuth\ResetPasswordRequest;
 use App\Http\Requests\Api\AppUserAuth\SocialLoginRequest;
 use App\Http\Requests\Api\AppUserAuth\VerifyRegisterOtpRequest;
 use App\Services\AppUserAuthService;
 use Closure;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Throwable;
 
 class AppUserAuthController extends Controller
@@ -36,6 +38,14 @@ class AppUserAuthController extends Controller
             $data = $request->validated();
 
             return $this->authService->completeRegistration($data['phone'], $data['otp']);
+        });
+    }
+
+    public function resendRegisterOtp(ResendRegisterOtpRequest $request): JsonResponse
+    {
+        return $this->executeSafely(function () use ($request): array {
+            $data = $request->validated();
+            return $this->authService->resendRegisterOtp($data['phone']);
         });
     }
 
@@ -79,6 +89,13 @@ class AppUserAuthController extends Controller
 
             return $this->authService->resetPassword($data['phone'], $data['password']);
         });
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        return $this->executeSafely(
+            fn (): array => $this->authService->logout($request->user())
+        );
     }
 
     private function jsonResponse(array $result, int $successStatus = 200): JsonResponse

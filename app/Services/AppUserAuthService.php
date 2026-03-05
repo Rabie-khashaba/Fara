@@ -115,6 +115,73 @@ class AppUserAuthService
         ];
     }
 
+    public function resendRegisterOtp(string $phone): array
+    {
+        $appUser = AppUser::query()->where('phone', $phone)->first();
+
+        if ($appUser) {
+            $otp = $this->generateOtp();
+            $expiresAt = now()->addMinutes(self::OTP_TTL_MINUTES);
+            $previousOtp = $appUser->otp;
+            $previousOtpExpiry = $appUser->expired_otp_at;
+
+            $appUser->forceFill([
+                'otp' => $otp,
+                'expired_otp_at' => $expiresAt,
+            ])->save();
+
+            $sendResult = $this->sendOtpMessage($phone, $otp, 'Your verification code is');
+
+            if (empty($sendResult['success'])) {
+                $appUser->forceFill([
+                    'otp' => $previousOtp,
+                    'expired_otp_at' => $previousOtpExpiry,
+                ])->save();
+
+                return ['error' => $sendResult['error'] ?? 'Failed to send OTP'];
+            }
+
+            return [
+                'message' => 'OTP sent successfully.',
+                'phone' => $appUser->phone,
+                'otp_expires_at' => $expiresAt->toISOString(),
+            ];
+        }
+
+        $pendingRegistration = $this->getPendingRegistrationByPhone($phone);
+
+        if (! $pendingRegistration) {
+            return ['error' => 'User not found or registration expired.'];
+        }
+
+        $otp = $this->generateOtp();
+        $expiresAt = now()->addMinutes(self::OTP_TTL_MINUTES);
+        $previousPendingRegistration = $pendingRegistration;
+
+        $pendingRegistration['otp'] = $otp;
+        $pendingRegistration['otp_expires_at'] = $expiresAt->toISOString();
+
+        $this->storePendingRegistration($phone, $pendingRegistration, $expiresAt);
+
+        $sendResult = $this->sendOtpMessage($phone, $otp, 'Your registration verification code is');
+
+        if (empty($sendResult['success'])) {
+            $previousExpiry = Carbon::parse(
+                $previousPendingRegistration['otp_expires_at'] ?? now()->addMinutes(self::OTP_TTL_MINUTES)
+            );
+            $this->storePendingRegistration($phone, $previousPendingRegistration, $previousExpiry);
+
+            return ['error' => $sendResult['error'] ?? 'Failed to send OTP'];
+        }
+
+        return [
+            'message' => 'OTP sent successfully.',
+            'phone' => $phone,
+            'registration_pending' => true,
+            'otp_expires_at' => $expiresAt->toISOString(),
+        ];
+    }
+
     public function loginByPhone(string $phone, string $password): array
     {
         $appUser = AppUser::query()->where('phone', $phone)->first();
@@ -262,18 +329,15 @@ class AppUserAuthService
             return ['error' => 'Invalid or expired OTP'];
         }
 
-        $resetToken = Str::random(64);
-        $expiresAt = now()->addMinutes(self::OTP_TTL_MINUTES);
+
 
         $appUser->forceFill([
-            'otp' => $resetToken,
-            'expired_otp_at' => $expiresAt,
+            'otp' => null,
+            'expired_otp_at' => null,
         ])->save();
 
         return [
-            'message' => 'OTP verified successfully',
-            'reset_token' => $resetToken,
-            'expires_at' => $expiresAt->toISOString(),
+            'message' => 'OTP verified successfully'
         ];
     }
 
@@ -295,6 +359,25 @@ class AppUserAuthService
 
         return [
             'message' => 'Password reset successfully',
+        ];
+    }
+
+    public function logout(?AppUser $user): array
+    {
+        if (! $user) {
+            return ['error' => 'Unauthorized', 'code' => 401];
+        }
+
+        $token = $user->currentAccessToken();
+
+        if ($token) {
+            $token->delete();
+        } else {
+            $user->tokens()->delete();
+        }
+
+        return [
+            'message' => 'Logged out successfully',
         ];
     }
 

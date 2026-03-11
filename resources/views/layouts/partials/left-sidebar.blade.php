@@ -2,13 +2,13 @@
     <!-- Sidebar Logo -->
     <div class="logo-box">
         <a href="{{ route('any', 'home') }}" class="logo-dark">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="logo sm"/>
-            <img src="/images/logo-dark.png" class="logo-lg" alt="logo dark"/>
+            <img src="/images/logo-sm.png" class="logo-sm" alt="Wander logo small"/>
+            <img src="/images/logo-dark.png" class="logo-lg" alt="Wander logo dark"/>
         </a>
 
         <a href="{{ route('any', 'home') }}" class="logo-light">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="logo sm"/>
-            <img src="/images/logo-light.png" class="logo-lg" alt="logo light"/>
+            <img src="/images/logo-sm.png" class="logo-sm" alt="Wander logo small"/>
+            <img src="/images/logo-light.png" class="logo-lg" alt="Wander logo light"/>
         </a>
     </div>
 
@@ -31,12 +31,6 @@
                 </a>
                 <div class="collapse" id="sidebarDashboards">
                     <ul class="nav sub-navbar-nav">
-                        <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('second', [ 'dashboards' , 'analytics']) }}">Analytics</a>
-                        </li>
-                        <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('second', ['dashboards', 'finance'])}}">Finance</a>
-                        </li>
                         <li class="sub-nav-item">
                             <a class="sub-nav-link" href="{{ route('second', ['dashboards', 'sales'])}}">Sales</a>
                         </li>

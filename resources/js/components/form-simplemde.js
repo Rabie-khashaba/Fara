@@ -1,6 +1,6 @@
 
 /**
-* Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+* Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
 * Author: Techzaa
 * Component: SimpleMDE component
 */

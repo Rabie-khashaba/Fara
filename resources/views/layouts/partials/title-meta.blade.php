@@ -1,5 +1,5 @@
 <meta charset="utf-8"/>
-<title>{{ $title ?? 'Reback' }} | Reback - Responsive Admin Dashboard Template</title>
+<title>{{ $title ?? 'Wander' }} | Wander Admin Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta
     name="description"

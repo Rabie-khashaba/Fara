@@ -1,5 +1,5 @@
 /*
-Template Name: Reback - Responsive 5 Admin Dashboard
+Template Name: Wander - Responsive 5 Admin Dashboard
 Author: Techzaa
 File: form - Dropzone js
 */

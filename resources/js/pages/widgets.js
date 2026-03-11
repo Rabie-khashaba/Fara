@@ -1,5 +1,5 @@
 /**
- * Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+ * Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
  * Author: Techzaa
  * Module/App: Dashboard
  */
@@ -56,7 +56,7 @@ var options = {
     },
     colors: ["#7f56da", "#22c55e"],
     series: [65.2],
-    labels: ['Returning Customer'],
+    labels: ['Conversations rate'],
     responsive: [{
         breakpoint: 380,
         options: {

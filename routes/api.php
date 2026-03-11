@@ -3,6 +3,7 @@
 use App\Enums\SocialAuthProvider;
 use App\Http\Controllers\Api\AppUserActivityController;
 use App\Http\Controllers\Api\AppUserAuthController;
+use App\Http\Controllers\Api\AppUserCheckInController;
 use App\Http\Controllers\Api\AppUserFollowController;
 use App\Http\Controllers\Api\AppUserPostCommentController;
 use App\Http\Controllers\Api\AppUserPostController;
@@ -65,4 +66,8 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::delete('follow/{appUserId}', [AppUserFollowController::class, 'destroy']);
 
     Route::get('activities', [AppUserActivityController::class, 'index']);
+    Route::get('check-in-cities', [AppUserCheckInController::class, 'cities']);
+    Route::get('check-ins', [AppUserCheckInController::class, 'index']);
+    Route::post('check-ins', [AppUserCheckInController::class, 'store']);
+    Route::post('check-in-cities/{city}/check-in', [AppUserCheckInController::class, 'storeByCity']);
 });

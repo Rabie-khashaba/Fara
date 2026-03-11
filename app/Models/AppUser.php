@@ -89,6 +89,11 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserActivity::class);
     }
 
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(AppUserCheckIn::class);
+    }
+
     public function likedPosts(): HasManyThrough
     {
         return $this->hasManyThrough(

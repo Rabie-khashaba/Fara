@@ -1,5 +1,52 @@
 @extends('layouts.vertical', ['title' => 'Analytics','subTitle' => 'Dashboards'])
 
+@section('css')
+                    <style>
+        .analytics-summary-panels {
+            height: 450px;
+        }
+
+        .analytics-summary-panel {
+            height: 450px;
+        }
+
+        .analytics-summary-panel-left #conversions {
+            min-height: 260px;
+        }
+
+        .analytics-summary-panel-left .analytics-summary-chart {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .analytics-summary-panel-right .analytics-summary-chart {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .analytics-summary-panel-right #dash-performance-chart {
+            width: 100%;
+        }
+
+        @media (max-width: 991.98px) {
+            .analytics-summary-panels,
+            .analytics-summary-panel {
+                height: auto;
+            }
+        }
+
+        .city-checkin-empty {
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8391a2;
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="row">
         <div class="col-xxl-3">
@@ -13,7 +60,7 @@
                                         class="avatar-md bg-primary bg-opacity-10 rounded"
                                     >
                                         <iconify-icon
-                                            icon="iconamoon:eye-duotone"
+                                            icon="solar:users-group-rounded-bold-duotone"
                                             class="avatar-title text-primary fs-32"
                                         ></iconify-icon>
                                     </div>
@@ -23,12 +70,12 @@
                                     <p
                                         class="text-muted mb-0 text-truncate"
                                     >
-                                        Page View
+                                        Total Users
                                     </p>
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        13,647
+                                        {{ $totalUsersPercentage }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -49,7 +96,7 @@
                                         class="avatar-md bg-success bg-opacity-10 rounded"
                                     >
                                         <iconify-icon
-                                            icon="iconamoon:link-external-duotone"
+                                            icon="solar:user-check-rounded-bold-duotone"
                                             class="avatar-title text-success fs-32"
                                         ></iconify-icon>
                                     </div>
@@ -59,12 +106,12 @@
                                     <p
                                         class="text-muted mb-0 text-truncate"
                                     >
-                                        Clicks
+                                        Reposts
                                     </p>
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        9,526
+                                        {{ $repostsPercentage }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -85,7 +132,7 @@
                                         class="avatar-md bg-danger bg-opacity-10 rounded"
                                     >
                                         <iconify-icon
-                                            icon="iconamoon:trend-up-bold"
+                                            icon="solar:chart-2-bold-duotone"
                                             class="avatar-title text-danger fs-32"
                                         ></iconify-icon>
                                     </div>
@@ -95,12 +142,12 @@
                                     <p
                                         class="text-muted mb-0 text-truncate"
                                     >
-                                        Conversions
+                                        Posts
                                     </p>
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        65.2%
+                                        {{ $postsPercentage }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -121,7 +168,7 @@
                                         class="avatar-md bg-warning bg-opacity-10 rounded"
                                     >
                                         <iconify-icon
-                                            icon="iconamoon:profile-circle-duotone"
+                                            icon="solar:user-plus-rounded-bold-duotone"
                                             class="avatar-title text-warning fs-32"
                                         ></iconify-icon>
                                     </div>
@@ -136,7 +183,7 @@
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        9.5k
+                                        {{ $newUsersPercentage }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -155,16 +202,18 @@
         <div class="col-xxl-9">
             <div class="card">
                 <div class="card-body p-0">
-                    <div class="row g-0">
-                        <div class="col-lg-4">
-                            <div class="p-3">
+                    <div class="row g-0 align-items-stretch analytics-summary-panels">
+                        <div class="col-lg-4 d-flex">
+                            <div class="p-3 d-flex flex-column justify-content-between h-100 w-100 analytics-summary-panel analytics-summary-panel-left">
                                 <h5 class="card-title">
                                     Conversions
                                 </h5>
-                                <div
-                                    id="conversions"
-                                    class="apex-charts mb-2 mt-n2"
-                                ></div>
+                                <div class="analytics-summary-chart">
+                                    <div
+                                        id="conversions"
+                                        class="apex-charts mb-2 mt-n2"
+                                    ></div>
+                                </div>
                                 <div class="row text-center">
                                     <div class="col-6">
                                         <p
@@ -194,20 +243,11 @@
                                     <!-- end col -->
                                 </div>
                                 <!-- end row -->
-                                <div class="text-center">
-                                    <button
-                                        type="button"
-                                        class="btn btn-light shadow-none w-100"
-                                    >
-                                        View Details
-                                    </button>
-                                </div>
-                                <!-- end row -->
                             </div>
                         </div>
                         <!-- end left chart card -->
-                        <div class="col-lg-8 border-start">
-                            <div class="p-3">
+                        <div class="col-lg-8 border-start d-flex">
+                            <div class="p-3 d-flex flex-column justify-content-between h-100 w-100 analytics-summary-panel analytics-summary-panel-right">
                                 <div
                                     class="d-flex justify-content-between align-items-center"
                                 >
@@ -243,17 +283,7 @@
                                 </div>
                                 <!-- end card-title-->
 
-                                <div
-                                    class="alert alert-info mt-3 text text-truncate mb-0"
-                                    role="alert"
-                                >
-                                    We regret to inform you that
-                                    our server is currently
-                                    experiencing technical
-                                    difficulties.
-                                </div>
-
-                                <div dir="ltr">
+                                <div dir="ltr" class="analytics-summary-chart">
                                     <div
                                         id="dash-performance-chart"
                                         class="apex-charts"
@@ -279,7 +309,7 @@
                     class="d-flex card-header justify-content-between align-items-center border-bottom border-dashed"
                 >
                     <h4 class="card-title">
-                        Sessions by Country
+                        Cities Location
                     </h4>
                     <div class="dropdown">
                         <a
@@ -293,19 +323,16 @@
                         <div
                             class="dropdown-menu dropdown-menu-end"
                         >
-                            <!-- item-->
                             <a
                                 href="javascript:void(0);"
                                 class="dropdown-item"
                             >Download</a
                             >
-                            <!-- item-->
                             <a
                                 href="javascript:void(0);"
                                 class="dropdown-item"
                             >Export</a
                             >
-                            <!-- item-->
                             <a
                                 href="javascript:void(0);"
                                 class="dropdown-item"
@@ -326,220 +353,50 @@
                         </div>
                         <div class="col-lg-5" dir="ltr">
                             <div class="p-3">
-                                <!-- Country Data -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center"
-                                >
-                                    <p class="mb-1">
-                                        <iconify-icon
-                                            icon="circle-flags:us"
-                                            class="fs-16 align-middle me-1"
-                                        ></iconify-icon>
-                                        <span
-                                            class="align-middle"
-                                        >United States</span
-                                        >
-                                    </p>
-                                </div>
-                                <div
-                                    class="row align-items-center mb-3"
-                                >
-                                    <div class="col">
-                                        <div
-                                            class="progress progress-soft progress-sm"
-                                        >
-                                            <div
-                                                class="progress-bar bg-secondary"
-                                                role="progressbar"
-                                                style="
-                                                                    width: 82.05%;
-                                                                "
-                                                aria-valuenow=""
-                                                aria-valuemin="0"
-                                                aria-valuemax="100"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <p
-                                            class="mb-0 fs-13 fw-semibold"
-                                        >
-                                            659k
+                                @forelse ($cityLocationTop as $index => $city)
+                                    <div
+                                        class="d-flex justify-content-between align-items-center"
+                                    >
+                                        <p class="mb-1">
+                                            <iconify-icon
+                                                icon="solar:map-point-bold-duotone"
+                                                class="fs-16 align-middle me-1"
+                                            ></iconify-icon>
+                                            <span
+                                                class="align-middle"
+                                            >{{ $city['name'] }}</span>
                                         </p>
                                     </div>
-                                </div>
-
-                                <!-- Country Data -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center"
-                                >
-                                    <p class="mb-1">
-                                        <iconify-icon
-                                            icon="circle-flags:ru"
-                                            class="fs-16 align-middle me-1"
-                                        ></iconify-icon>
-                                        <span
-                                            class="align-middle"
-                                        >Russia</span
-                                        >
-                                    </p>
-                                </div>
-                                <div
-                                    class="row align-items-center mb-3"
-                                >
-                                    <div class="col">
-                                        <div
-                                            class="progress progress-soft progress-sm"
-                                        >
+                                    <div
+                                        class="row align-items-center {{ $loop->last ? '' : 'mb-3' }}"
+                                    >
+                                        <div class="col">
                                             <div
-                                                class="progress-bar bg-info"
-                                                role="progressbar"
-                                                style="
-                                                                    width: 70.5%;
-                                                                "
-                                                aria-valuenow=""
-                                                aria-valuemin="0"
-                                                aria-valuemax="100"
-                                            ></div>
+                                                class="progress progress-soft progress-sm"
+                                            >
+                                                <div
+                                                    class="progress-bar {{ $index === 0 ? 'bg-secondary' : ($index === 1 ? 'bg-info' : ($index === 2 ? 'bg-warning' : ($index === 3 ? 'bg-success' : 'bg-primary'))) }}"
+                                                    role="progressbar"
+                                                    style="width: {{ $city['percentage'] }}%;"
+                                                    aria-valuenow="{{ $city['percentage'] }}"
+                                                    aria-valuemin="0"
+                                                    aria-valuemax="100"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <p
+                                                class="mb-0 fs-13 fw-semibold"
+                                            >
+                                                {{ number_format($city['count']) }}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div class="col-auto">
-                                        <p
-                                            class="mb-0 fs-13 fw-semibold"
-                                        >
-                                            485k
-                                        </p>
+                                @empty
+                                    <div class="city-checkin-empty">
+                                        No check-ins yet.
                                     </div>
-                                </div>
-
-                                <!-- Country Data -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center"
-                                >
-                                    <p class="mb-1">
-                                        <iconify-icon
-                                            icon="circle-flags:cn"
-                                            class="fs-16 align-middle me-1"
-                                        ></iconify-icon>
-                                        <span
-                                            class="align-middle"
-                                        >China</span
-                                        >
-                                    </p>
-                                </div>
-                                <div
-                                    class="row align-items-center mb-3"
-                                >
-                                    <div class="col">
-                                        <div
-                                            class="progress progress-soft progress-sm"
-                                        >
-                                            <div
-                                                class="progress-bar bg-warning"
-                                                role="progressbar"
-                                                style="
-                                                                    width: 65.8%;
-                                                                "
-                                                aria-valuenow=""
-                                                aria-valuemin="0"
-                                                aria-valuemax="100"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <p
-                                            class="mb-0 fs-13 fw-semibold"
-                                        >
-                                            355k
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Country Data -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center"
-                                >
-                                    <p class="mb-1">
-                                        <iconify-icon
-                                            icon="circle-flags:ca"
-                                            class="fs-16 align-middle me-1"
-                                        ></iconify-icon>
-                                        <span
-                                            class="align-middle"
-                                        >Canada</span
-                                        >
-                                    </p>
-                                </div>
-                                <div
-                                    class="row align-items-center mb-3"
-                                >
-                                    <div class="col">
-                                        <div
-                                            class="progress progress-soft progress-sm"
-                                        >
-                                            <div
-                                                class="progress-bar bg-success"
-                                                role="progressbar"
-                                                style="
-                                                                    width: 55.8%;
-                                                                "
-                                                aria-valuenow=""
-                                                aria-valuemin="0"
-                                                aria-valuemax="100"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <p
-                                            class="mb-0 fs-13 fw-semibold"
-                                        >
-                                            204k
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Country Data -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center"
-                                >
-                                    <p class="mb-1">
-                                        <iconify-icon
-                                            icon="circle-flags:br"
-                                            class="fs-16 align-middle me-1"
-                                        ></iconify-icon>
-                                        <span
-                                            class="align-middle"
-                                        >Brazil</span
-                                        >
-                                    </p>
-                                </div>
-                                <div
-                                    class="row align-items-center"
-                                >
-                                    <div class="col">
-                                        <div
-                                            class="progress progress-soft progress-sm"
-                                        >
-                                            <div
-                                                class="progress-bar"
-                                                role="progressbar"
-                                                style="
-                                                                    width: 35.9%;
-                                                                "
-                                                aria-valuenow=""
-                                                aria-valuemin="0"
-                                                aria-valuemax="100"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <p
-                                            class="mb-0 fs-13 fw-semibold"
-                                        >
-                                            109k
-                                        </p>
-                                    </div>
-                                </div>
+                                @endforelse
                             </div>
                         </div>
                     </div>
@@ -551,7 +408,7 @@
         <!-- end col-->
     </div>
 
-    <div class="row">
+    {{-- <div class="row">
         <div class="col-lg-4">
             <div class="card">
                 <div
@@ -830,9 +687,13 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 @endsection
 
-@section('script')
+@section('script-bottom')
+    <script>
+        window.dashboardAnalytics = @json($performanceChart);
+        window.saudiCitiesMap = @json($saudiCitiesMap);
+    </script>
     @vite(['resources/js/pages/dashboard.analytics.js'])
 @endsection

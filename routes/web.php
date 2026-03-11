@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AppUserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\SettingPermissionController;
 use App\Http\Controllers\SettingRoleController;
@@ -12,7 +13,8 @@ require __DIR__ . '/auth.php';
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('/home', fn() => view('dashboards.analytics'))->name('home');
+    Route::get('/home', [DashboardController::class, 'analytics'])->name('home');
+    Route::get('/dashboards/analytics', [DashboardController::class, 'analytics']);
 
     Route::resource('users', UserController::class);
     Route::patch('users/{user}/toggle-block', [UserController::class, 'toggleBlock'])->name('users.toggle-block');

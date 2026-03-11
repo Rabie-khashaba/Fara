@@ -1,5 +1,5 @@
 /**
- * Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+ * Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
  * Author: Techzaa
  * Module/App: Apex Column Charts
  */

@@ -1,5 +1,5 @@
 /**
- * Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+ * Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
  * Author: Techzaa
  * Module/App: Dashboard
  */
@@ -10,6 +10,10 @@ window.ApexCharts = ApexCharts;
 import jsVectorMap from 'jsvectormap'
 import 'jsvectormap/dist/maps/world-merc.js'
 import 'jsvectormap/dist/maps/world.js'
+
+const saudiCitiesMapData = window.saudiCitiesMap ?? {
+    markers: [],
+};
 
 //
 // Conversions
@@ -60,7 +64,7 @@ var options = {
     },
     colors: ["#7f56da", "#22c55e"],
     series: [65.2],
-    labels: ['Returning Customer'],
+    labels: ['Conversations rate'],
     responsive: [{
         breakpoint: 380,
         options: {
@@ -90,16 +94,22 @@ chart.render();
 //
 //Performance-chart
 //
+const performanceChartData = window.dashboardAnalytics ?? {
+    categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    users: [34, 65, 46, 68, 49, 61, 42, 44, 78, 52, 63, 67],
+    posts: [8, 12, 7, 17, 21, 11, 5, 9, 7, 29, 12, 35],
+};
+
 var options = {
     series: [{
-        name: "Page Views",
+        name: "Users",
         type: "bar",
-        data: [34, 65, 46, 68, 49, 61, 42, 44, 78, 52, 63, 67],
+        data: performanceChartData.users,
     },
         {
-            name: "Clicks",
+            name: "Posts",
             type: "area",
-            data: [8, 12, 7, 17, 21, 11, 5, 9, 7, 29, 12, 35],
+            data: performanceChartData.posts,
         },
     ],
     chart: {
@@ -133,20 +143,7 @@ var options = {
         },
     },
     xaxis: {
-        categories: [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ],
+        categories: performanceChartData.categories,
         axisTicks: {
             show: false,
         },
@@ -208,7 +205,7 @@ var options = {
         y: [{
             formatter: function (y) {
                 if (typeof y !== "undefined") {
-                    return y.toFixed(1) + "k";
+                    return y.toFixed(0);
                 }
                 return y;
             },
@@ -216,7 +213,7 @@ var options = {
             {
                 formatter: function (y) {
                     if (typeof y !== "undefined") {
-                        return y.toFixed(1) + "k";
+                        return y.toFixed(0);
                     }
                     return y;
                 },
@@ -234,25 +231,33 @@ chart.render();
 
 
 class VectorMap {
-
-
     initWorldMapMarker() {
-        const map = new jsVectorMap({
-            map: 'world',
+        new jsVectorMap({
+            map: 'world_merc',
             selector: '#world-map-markers',
             zoomOnScroll: true,
-            zoomButtons: false,
-            markersSelectable: true,
-            markers: [
-                {name: "Canada", coords: [56.1304, -106.3468]},
-                {name: "Brazil", coords: [-14.2350, -51.9253]},
-                {name: "Russia", coords: [61, 105]},
-                {name: "China", coords: [35.8617, 104.1954]},
-                {name: "United States", coords: [37.0902, -95.7129]}
-            ],
+            zoomButtons: true,
+            markersSelectable: false,
+            panOnDrag: true,
+            focusOn: {
+                coords: [23.8859, 45.0792],
+                scale: 7,
+                animate: true,
+            },
+            markers: saudiCitiesMapData.markers,
+            backgroundColor: 'transparent',
             markerStyle: {
-                initial: {fill: "#7f56da"},
-                selected: {fill: "#22c55e"}
+                initial: {
+                    fill: "#6f7f95",
+                    stroke: "#dbe2ea",
+                    strokeWidth: 5,
+                    r: 7,
+                },
+                hover: {
+                    fill: "#7f56da",
+                    stroke: "#ffffff",
+                    strokeWidth: 5,
+                }
             },
             labels: {
                 markers: {
@@ -261,9 +266,14 @@ class VectorMap {
             },
             regionStyle: {
                 initial: {
-                    fill: 'rgba(169,183,197, 0.3)',
+                    fill: '#d9dee5',
                     fillOpacity: 1,
+                    stroke: '#ffffff',
+                    strokeWidth: 0.75,
                 },
+                hover: {
+                    fill: '#d1d7df',
+                }
             },
         });
     }
@@ -275,5 +285,7 @@ class VectorMap {
 }
 
 document.addEventListener('DOMContentLoaded', function (e) {
-    new VectorMap().init();
+    if (document.querySelector('#world-map-markers')) {
+        new VectorMap().init();
+    }
 });

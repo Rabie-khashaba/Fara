@@ -1,5 +1,5 @@
 /**
-* Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+* Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
 * Author: Techzaa
 * Module/App: Theme Layout Customizer Js
 */
@@ -257,8 +257,8 @@ class ThemeLayout {
 
      setSwitchFromConfig() {
 
-          localStorage.setItem('__REBACK_CONFIG__', JSON.stringify(this.config));
-          // sessionStorage.setItem('__REBACK_CONFIG__', JSON.stringify(this.config));
+          localStorage.setItem('__Wander_CONFIG__', JSON.stringify(this.config));
+          // sessionStorage.setItem('__Wander_CONFIG__', JSON.stringify(this.config));
 
           document.querySelectorAll('.settings-bar input[type=radio]').forEach(function (checkbox) {
                checkbox.checked = false;

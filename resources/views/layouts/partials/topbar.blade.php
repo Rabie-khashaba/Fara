@@ -45,7 +45,7 @@
                     </button>
                 </div>
 
-                <!-- Category -->
+                {{-- <!-- Category -->
                 <div class="dropdown topbar-item d-none d-lg-flex">
                     <button
                         type="button"
@@ -72,7 +72,7 @@
                                 />
                                 <span class="ms-2"
                                 >GitHub:
-                                    <span class="fw-medium">@reback</span></span
+                                    <span class="fw-medium">@wander</span></span
                                 >
                             </a>
                             <a
@@ -86,7 +86,7 @@
                                 />
                                 <span class="ms-2"
                                 >Bitbucket:
-                                    <span class="fw-medium">@reback</span></span
+                                    <span class="fw-medium">@wander</span></span
                                 >
                             </a>
                             <a
@@ -134,12 +134,12 @@
                                 />
                                 <span class="ms-2"
                                 >Slack:
-                                    <span class="fw-medium">@reback</span></span
+                                    <span class="fw-medium">@wander</span></span
                                 >
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
                 <!-- Notification -->
                 <div class="dropdown topbar-item">
@@ -578,7 +578,7 @@
                             >
                             <div class="ms-2">
                                 <h5 class="mb-1 text-dark fw-semibold fs-15">
-                                    Reback Application UI v2.0.0
+                                    Wander Application UI v2.0.0
                                     <span
                                         class="badge bg-primary-subtle text-primary px-2 py-1 ms-1"
                                     >

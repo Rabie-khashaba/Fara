@@ -1,5 +1,5 @@
 /**
-* Theme: Reback - Responsive Bootstrap 5 Admin Dashboard
+* Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
 * Author: Techzaa
 * Module/App: Theme Config Js
 */
@@ -25,8 +25,8 @@ class Config {
 
      setConfig() {
           let config = this.config;
-          var savedConfig = localStorage.getItem("__REBACK_CONFIG__");
-          // var savedConfig = sessionStorage.getItem("__REBACK_CONFIG__");
+          var savedConfig = localStorage.getItem("__Wander_CONFIG__");
+          // var savedConfig = sessionStorage.getItem("__Wander_CONFIG__");
 
           let html = document.getElementsByTagName('html')[0];
           window.html = html;
@@ -54,7 +54,7 @@ class Config {
           try {
                this.setConfig();
           } catch (e) {
-               localStorage.setItem('__REBACK_CONFIG__', JSON.stringify(this.config));
+               localStorage.setItem('__Wander_CONFIG__', JSON.stringify(this.config));
                this.setConfig();
           }
      }

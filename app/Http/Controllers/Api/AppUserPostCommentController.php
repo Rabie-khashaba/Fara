@@ -16,7 +16,7 @@ class AppUserPostCommentController extends Controller
 {
     public function index(int $id): JsonResponse
     {
-        $post = AppUserPost::query()->findOrFail($id);
+        $post = AppUserPost::query()->visible()->findOrFail($id);
 
         return response()->json([
             'status' => true,
@@ -28,7 +28,7 @@ class AppUserPostCommentController extends Controller
     {
         /** @var AppUser $appUser */
         $appUser = $request->user();
-        $post = AppUserPost::query()->findOrFail($id);
+        $post = AppUserPost::query()->visible()->findOrFail($id);
 
         $comment = $post->comments()->create([
             'app_user_id' => $appUser->id,
@@ -41,6 +41,11 @@ class AppUserPostCommentController extends Controller
             'app_user_post_id' => $post->id,
             'subject_app_user_id' => $post->app_user_id,
             'description' => 'Commented on a post',
+            'meta' => [
+                'subject_name' => $post->appUser?->name,
+                'post_excerpt' => $post->content,
+                'comment_excerpt' => $comment->comment,
+            ],
         ]);
 
         return response()->json([
@@ -66,6 +71,11 @@ class AppUserPostCommentController extends Controller
             'app_user_post_id' => $comment->app_user_post_id,
             'subject_app_user_id' => $comment->post?->app_user_id,
             'description' => 'Updated a comment',
+            'meta' => [
+                'subject_name' => $comment->post?->appUser?->name,
+                'post_excerpt' => $comment->post?->content,
+                'comment_excerpt' => $comment->comment,
+            ],
         ]);
 
         return response()->json([
@@ -89,6 +99,11 @@ class AppUserPostCommentController extends Controller
             'app_user_post_id' => $comment->app_user_post_id,
             'subject_app_user_id' => $comment->post?->app_user_id,
             'description' => 'Deleted a comment',
+            'meta' => [
+                'subject_name' => $comment->post?->appUser?->name,
+                'post_excerpt' => $comment->post?->content,
+                'comment_excerpt' => $comment->comment,
+            ],
         ]);
 
         $comment->delete();

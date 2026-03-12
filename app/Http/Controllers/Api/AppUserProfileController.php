@@ -77,6 +77,7 @@ class AppUserProfileController extends Controller
         $appUser = AppUser::query()
             ->with([
                 'posts' => fn ($query) => $query
+                    ->visible()
                     ->with(['repostedPost.appUser:id,name,username'])
                     ->withCount(['likes', 'comments'])
                     ->latest(),

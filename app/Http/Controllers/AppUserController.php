@@ -3,16 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppUser;
+use App\Models\AppUserPost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AppUserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = AppUser::query()
+            ->with('packages');
+
+        if ($search = trim((string) $request->string('search'))) {
+            $query->where(function ($builder) use ($search) {
+                $builder
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        if (in_array($request->input('status'), ['active', 'inactive'], true)) {
+            $query->where('is_active', $request->input('status') === 'active');
+        }
+
+        if (in_array($request->input('subscribed'), ['yes', 'no'], true)) {
+            $request->input('subscribed') === 'yes'
+                ? $query->whereHas('packages')
+                : $query->whereDoesntHave('packages');
+        }
+
         return view('app-users.index', [
-            'appUsers' => AppUser::query()->latest()->paginate(10),
+            'appUsers' => $query->latest()->paginate(10)->withQueryString(),
         ]);
     }
 
@@ -39,11 +69,17 @@ class AppUserController extends Controller
     public function show(AppUser $app_user): View
     {
         $app_user->load([
+            'packages',
             'socialAccounts',
-            'posts' => fn ($query) => $query->with(['repostedPost.appUser'])->withCount(['likes', 'comments'])->latest(),
+            'posts' => fn ($query) => $query
+                ->with(['repostedPost.appUser', 'comments.appUser'])
+                ->withCount(['likes', 'comments'])
+                ->latest(),
             'followers.follower',
             'following.following',
-            'activities' => fn ($query) => $query->with(['post', 'subjectAppUser'])->latest(),
+            'activities' => fn ($query) => $query
+                ->with(['post.comments', 'subjectAppUser'])
+                ->latest(),
         ]);
 
         return view('app-users.show', [
@@ -87,5 +123,18 @@ class AppUserController extends Controller
         ]);
 
         return redirect()->back()->with('status', 'App user status updated successfully.');
+    }
+
+    public function togglePostVisibility(AppUser $app_user, AppUserPost $post): RedirectResponse
+    {
+        abort_if($post->app_user_id !== $app_user->id, 404);
+
+        $post->update([
+            'is_hide' => ! $post->is_hide,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('status', $post->is_hide ? 'Post hidden successfully.' : 'Post is visible again.');
     }
 }

@@ -75,7 +75,7 @@
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        {{ $totalUsersPercentage }}
+                                        {{ $totalUsersCount }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -111,7 +111,7 @@
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        {{ $repostsPercentage }}
+                                        {{ $repostsCount }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -147,7 +147,7 @@
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        {{ $postsPercentage }}
+                                        {{ $postsCount }}
                                     </h3>
                                 </div>
                                 <!-- end col -->
@@ -183,7 +183,7 @@
                                     <h3
                                         class="text-dark mt-1 mb-0"
                                     >
-                                        {{ $newUsersPercentage }}
+                                        {{ $newUsersCount }}
                                     </h3>
                                 </div>
                                 <!-- end col -->

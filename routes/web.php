@@ -23,6 +23,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         ->parameters(['app-users' => 'app_user'])
         ->except(['destroy']);
     Route::patch('app-users/{app_user}/toggle-status', [AppUserController::class, 'toggleStatus'])->name('app-users.toggle-status');
+    Route::patch('app-users/{app_user}/posts/{post}/toggle-visibility', [AppUserController::class, 'togglePostVisibility'])->name('app-users.posts.toggle-visibility');
 
     Route::resource('settings/roles', SettingRoleController::class)->names('settings.roles');
 

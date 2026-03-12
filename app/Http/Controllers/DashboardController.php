@@ -56,10 +56,10 @@ class DashboardController extends Controller
         $maxCheckIns = max(1, (int) $saudiCities->max('count'));
 
         return view('dashboards.analytics', [
-            'totalUsersPercentage' => $this->percentage($activeUsers, $totalUsers),
-            'repostsPercentage' => $this->percentage($totalReposts, $totalPosts),
-            'postsPercentage' => $this->percentage($publishedPosts, $totalPosts),
-            'newUsersPercentage' => $this->percentage($newUsers, $totalUsers),
+            'totalUsersCount' => number_format($totalUsers),
+            'repostsCount' => number_format($totalReposts),
+            'postsCount' => number_format($totalPosts),
+            'newUsersCount' => number_format($newUsers),
             'performanceChart' => [
                 'categories' => $months->map(fn (Carbon $month) => $month->format('M'))->all(),
                 'users' => $months->map(fn (Carbon $month) => $usersByMonth->get($month->format('Y-m'), 0))->all(),
@@ -80,15 +80,6 @@ class DashboardController extends Controller
                 ])->values()->all(),
             ],
         ]);
-    }
-
-    private function percentage(int $value, int $total): string
-    {
-        if ($total === 0) {
-            return '0%';
-        }
-
-        return number_format(($value / $total) * 100, 1) . '%';
     }
 
     private function monthKey(Carbon $date): string

@@ -27,6 +27,10 @@ class AppUserPostLikeController extends Controller
             'app_user_post_id' => $post->id,
             'subject_app_user_id' => $post->app_user_id,
             'description' => 'Liked a post',
+            'meta' => [
+                'subject_name' => $post->appUser?->name,
+                'post_excerpt' => $post->content,
+            ],
         ]);
 
         return response()->json([
@@ -49,6 +53,10 @@ class AppUserPostLikeController extends Controller
             'app_user_post_id' => $post->id,
             'subject_app_user_id' => $post->app_user_id,
             'description' => 'Removed like from a post',
+            'meta' => [
+                'subject_name' => $post->appUser?->name,
+                'post_excerpt' => $post->content,
+            ],
         ]);
 
         return response()->json([

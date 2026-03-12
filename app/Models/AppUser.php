@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -54,6 +55,12 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserSocialAccount::class);
     }
 
+    public function packages(): BelongsToMany
+    {
+        return $this->belongsToMany(Package::class, 'app_user_package')
+            ->withTimestamps();
+    }
+
     public function posts(): HasMany
     {
         return $this->hasMany(AppUserPost::class);
@@ -82,6 +89,11 @@ class AppUser extends Authenticatable
     public function reposts(): HasMany
     {
         return $this->hasMany(AppUserRepost::class);
+    }
+
+    public function sharedPosts(): HasMany
+    {
+        return $this->hasMany(AppUserSharedPost::class);
     }
 
     public function activities(): HasMany

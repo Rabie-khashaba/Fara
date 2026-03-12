@@ -83,6 +83,9 @@ class AppUserFollowController extends Controller
             'type' => 'followed_user',
             'subject_app_user_id' => $targetAppUser->id,
             'description' => 'Started following a user',
+            'meta' => [
+                'subject_name' => $targetAppUser->name,
+            ],
         ]);
 
         return response()->json([
@@ -106,6 +109,9 @@ class AppUserFollowController extends Controller
             'type' => 'unfollowed_user',
             'subject_app_user_id' => $targetAppUser->id,
             'description' => 'Stopped following a user',
+            'meta' => [
+                'subject_name' => $targetAppUser->name,
+            ],
         ]);
 
         return response()->json([

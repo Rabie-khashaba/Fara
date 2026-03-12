@@ -31,7 +31,9 @@ class AppUserAuthService
 
     public function requestRegistration(array $data): array
     {
-        if (AppUser::query()->where('phone', $data['phone'])->exists()) {
+        $data['phone'] = $this->normalizePhone($data['phone']);
+
+        if ($this->findAppUserByPhone($data['phone'])) {
             return ['error' => 'Phone number already registered'];
         }
 
@@ -82,6 +84,7 @@ class AppUserAuthService
 
     public function completeRegistration(string $phone, string $otp): array
     {
+        $phone = $this->normalizePhone($phone);
         $pendingRegistration = $this->getPendingRegistrationByPhone($phone);
 
         if (
@@ -117,7 +120,8 @@ class AppUserAuthService
 
     public function resendRegisterOtp(string $phone): array
     {
-        $appUser = AppUser::query()->where('phone', $phone)->first();
+        $phone = $this->normalizePhone($phone);
+        $appUser = $this->findAppUserByPhone($phone);
 
         if ($appUser) {
             $otp = $this->generateOtp();
@@ -184,7 +188,7 @@ class AppUserAuthService
 
     public function loginByPhone(string $phone, string $password): array
     {
-        $appUser = AppUser::query()->where('phone', $phone)->first();
+        $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
         if (! $appUser) {
             return ['error' => 'User not found'];
@@ -286,7 +290,7 @@ class AppUserAuthService
 
     public function forgotPassword(string $phone): array
     {
-        $appUser = AppUser::query()->where('phone', $phone)->first();
+        $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
         if (! $appUser) {
             return ['error' => 'User not found'];
@@ -320,12 +324,9 @@ class AppUserAuthService
 
     public function verifyForgotPasswordOtp(string $phone, string $otp): array
     {
-        $appUser = AppUser::query()
-            ->where('phone', $phone)
-            ->where('otp', $otp)
-            ->first();
+        $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
-        if (! $appUser || $appUser->expired_otp_at?->isPast()) {
+        if (! $appUser || $appUser->otp !== $otp || $appUser->expired_otp_at?->isPast()) {
             return ['error' => 'Invalid or expired OTP'];
         }
 
@@ -343,9 +344,7 @@ class AppUserAuthService
 
     public function resetPassword(string $phone, string $password): array
     {
-        $appUser = AppUser::query()
-            ->where('phone', $phone)
-            ->first();
+        $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
         if (! $appUser) {
             return ['error' => 'User not found'];
@@ -604,10 +603,10 @@ class AppUserAuthService
      */
     protected function resolveSocialPhone(array $data, string $provider, string $providerId): string
     {
-        $phone = trim((string) ($data['phone'] ?? ''));
+        $phone = $this->normalizePhone((string) ($data['phone'] ?? ''));
 
         if ($phone !== '') {
-            $existingUser = AppUser::query()->where('phone', $phone)->first();
+            $existingUser = $this->findAppUserByPhone($phone);
 
             if ($existingUser && ! $this->findByProviderIdentity($provider, $providerId)?->is($existingUser)) {
                 return $this->generatePlaceholderPhone($provider, $providerId);
@@ -617,6 +616,52 @@ class AppUserAuthService
         }
 
         return $this->generatePlaceholderPhone($provider, $providerId);
+    }
+
+    protected function findAppUserByPhone(string $phone): ?AppUser
+    {
+        $normalizedPhone = $this->normalizePhone($phone);
+        $digitsOnlyPhone = $this->digitsOnlyPhone($normalizedPhone);
+
+        return AppUser::query()
+            ->where('phone', $normalizedPhone)
+            ->orWhereRaw(
+                "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?",
+                [$digitsOnlyPhone]
+            )
+            ->first();
+    }
+
+    protected function normalizePhone(string $phone): string
+    {
+        $phone = trim($phone);
+
+        if ($phone === '') {
+            return $phone;
+        }
+
+        $arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $easternArabicIndic = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+        $phone = str_replace($arabicIndic, $western, $phone);
+        $phone = str_replace($easternArabicIndic, $western, $phone);
+        $phone = preg_replace('/\s+/', '', $phone) ?? $phone;
+
+        if (str_starts_with($phone, '00')) {
+            $phone = '+' . substr($phone, 2);
+        }
+
+        if (str_starts_with($phone, '20') && ! str_starts_with($phone, '+')) {
+            $phone = '+' . $phone;
+        }
+
+        return $phone;
+    }
+
+    protected function digitsOnlyPhone(string $phone): string
+    {
+        return preg_replace('/\D+/', '', $phone) ?? $phone;
     }
 
     protected function resolveSocialEmail(?string $email, string $provider, string $providerId): ?string

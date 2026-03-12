@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,7 @@ class AppUserPost extends Model
         'location',
         'status',
         'published_at',
+        'is_hide',
         'reposted_post_id',
     ];
 
@@ -29,7 +31,13 @@ class AppUserPost extends Model
     {
         return [
             'published_at' => 'datetime',
+            'is_hide' => 'boolean',
         ];
+    }
+
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('is_hide', false);
     }
 
     public function appUser(): BelongsTo
@@ -60,6 +68,11 @@ class AppUserPost extends Model
     public function reposts(): HasMany
     {
         return $this->hasMany(AppUserRepost::class, 'app_user_post_id');
+    }
+
+    public function sharedPosts(): HasMany
+    {
+        return $this->hasMany(AppUserSharedPost::class, 'app_user_post_id');
     }
 
     public function getImageUrlAttribute(): ?string

@@ -27,6 +27,7 @@ class AppUserPostController extends Controller
             ->all() ?? [];
 
         $posts = AppUserPost::query()
+            ->visible()
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
             ->withCount(['likes', 'comments', 'reposts'])
             ->latest()
@@ -49,6 +50,7 @@ class AppUserPostController extends Controller
         $appUser = $request->user();
 
         $posts = $appUser->posts()
+            ->visible()
             ->withCount(['likes', 'comments'])
             ->latest()
             ->get();
@@ -67,6 +69,7 @@ class AppUserPostController extends Controller
         $posts = $appUser->reposts()
             ->with([
                 'post' => fn ($query) => $query
+                    ->visible()
                     ->with(['appUser:id,name,username'])
                     ->withCount(['likes', 'comments', 'reposts']),
             ])
@@ -87,6 +90,7 @@ class AppUserPostController extends Controller
         $followingIds = $appUser->following()->pluck('following_app_user_id');
 
         $posts = AppUserPost::query()
+            ->visible()
             ->whereIn('app_user_id', $followingIds)
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
             ->withCount(['likes', 'comments', 'reposts'])
@@ -124,7 +128,7 @@ class AppUserPostController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $post = AppUserPost::query()->findOrFail($id);
+        $post = AppUserPost::query()->visible()->findOrFail($id);
 
         return response()->json([
             'status' => true,
@@ -178,7 +182,7 @@ class AppUserPostController extends Controller
     {
         /** @var AppUser $appUser */
         $appUser = $request->user();
-        $originalPost = AppUserPost::query()->findOrFail($id);
+        $originalPost = AppUserPost::query()->visible()->findOrFail($id);
 
         $repost = AppUserRepost::query()->firstOrCreate([
             'app_user_id' => $appUser->id,
@@ -207,6 +211,10 @@ class AppUserPostController extends Controller
             'app_user_post_id' => $post?->id,
             'subject_app_user_id' => $subject?->id,
             'description' => $description,
+            'meta' => [
+                'subject_name' => $subject?->name,
+                'post_excerpt' => $post?->content,
+            ],
         ]);
     }
 

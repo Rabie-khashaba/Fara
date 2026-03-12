@@ -2,13 +2,13 @@
     <!-- Sidebar Logo -->
     <div class="logo-box">
         <a href="{{ route('any', 'home') }}" class="logo-dark">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="Wander logo small"/>
-            <img src="/images/logo-dark.png" class="logo-lg" alt="Wander logo dark"/>
+            <img src="/images/Logo-white.svg" class="logo-sm" alt="Wander logo small"/>
+            <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
         </a>
 
         <a href="{{ route('any', 'home') }}" class="logo-light">
-            <img src="/images/logo-sm.png" class="logo-sm" alt="Wander logo small"/>
-            <img src="/images/logo-light.png" class="logo-lg" alt="Wander logo light"/>
+            <img src="/images/Logo-black.svg" class="logo-sm" alt="Wander logo small"/>
+            <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
         </a>
     </div>
 
@@ -22,20 +22,12 @@
             <li class="menu-title">General</li>
 
             <li class="nav-item">
-                <a class="nav-link menu-arrow" href="#sidebarDashboards" data-bs-toggle="collapse" role="button"
-                   aria-expanded="false" aria-controls="sidebarDashboards">
+                <a class="nav-link" href="{{ route('home') }}">
                     <span class="nav-icon">
                         <iconify-icon icon="iconamoon:home-duotone"></iconify-icon>
                     </span>
-                    <span class="nav-text"> Dashboards </span>
+                    <span class="nav-text"> Dashboard </span>
                 </a>
-                <div class="collapse" id="sidebarDashboards">
-                    <ul class="nav sub-navbar-nav">
-                        <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('second', ['dashboards', 'sales'])}}">Sales</a>
-                        </li>
-                    </ul>
-                </div>
             </li>
 
             <li class="menu-title">Apps</li>

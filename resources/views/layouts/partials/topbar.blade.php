@@ -377,13 +377,14 @@
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
                         <!-- item-->
-                        <h6 class="dropdown-header">Welcome Gaston!</h6>
+                        <h6 class="dropdown-header">Welcome {{ auth()->user()->name }}</h6>
                         <a class="dropdown-item" href="{{ route('second', ['pages', 'profile'])}}">
                             <i
                                 class="bx bx-user-circle text-muted fs-18 align-middle me-1"
                             ></i
                             ><span class="align-middle">Profile</span>
                         </a>
+                        {{--
                         <a class="dropdown-item" href="{{ route('second', ['apps', 'chat'])}}">
                             <i
                                 class="bx bx-message-dots text-muted fs-18 align-middle me-1"
@@ -409,6 +410,7 @@
                             ></i
                             ><span class="align-middle">Lock screen</span>
                         </a>
+                        --}}
 
                         <div class="dropdown-divider my-1"></div>
 

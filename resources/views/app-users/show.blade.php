@@ -100,8 +100,19 @@
             <div class="col-12">
                 <div class="card">
                     <div class="position-relative">
-                        <img src="/images/small/img-6.jpg" alt="cover" class="card-img rounded-bottom-0" height="200" />
-                        <img src="/images/users/avatar-1.jpg" alt="avatar" class="avatar-lg rounded-circle position-absolute top-100 start-0 translate-middle-y ms-3 border border-light border-3" />
+                        <img
+                            src="{{ $appUser->cover_photo_url ?: '/images/small/img-6.jpg' }}"
+                            alt="cover"
+                            class="card-img rounded-bottom-0"
+                            height="200"
+                            style="object-fit: cover;"
+                        />
+                        <img
+                            src="{{ $appUser->profile_image_url ?: '/images/users/avatar-1.jpg' }}"
+                            alt="avatar"
+                            class="avatar-lg rounded-circle position-absolute top-100 start-0 translate-middle-y ms-3 border border-light border-3"
+                            style="object-fit: cover;"
+                        />
                     </div>
                     <div class="card-body mt-4">
                         <div class="d-flex align-items-center">

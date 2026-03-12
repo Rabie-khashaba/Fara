@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppUser;
+use App\Models\Package;
 use App\Models\AppUserPost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AppUserController extends Controller
@@ -48,20 +51,39 @@ class AppUserController extends Controller
 
     public function create(): View
     {
-        return view('app-users.create');
+        return view('app-users.create', [
+            'packages' => Package::query()->where('is_active', true)->orderBy('name')->get(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255', 'unique:app_users,username'],
             'phone' => ['required', 'string', 'max:30', 'unique:app_users,phone'],
             'password' => ['required', 'string', 'min:6'],
+            'is_active' => ['nullable', 'boolean'],
+            'profile_image' => ['nullable', 'image', 'max:2048'],
+            'cover_photo' => ['nullable', 'image', 'max:4096'],
+            'package_ids' => ['nullable', 'array'],
+            'package_ids.*' => ['integer', 'exists:packages,id'],
         ], [
             'phone.unique' => 'This phone number already exists.',
         ]);
 
-        AppUser::create($data);
+        $data['is_active'] = $request->boolean('is_active', true);
+
+        if ($request->hasFile('profile_image')) {
+            $data['profile_image'] = $request->file('profile_image')->store('app-user-profiles', 'public');
+        }
+
+        if ($request->hasFile('cover_photo')) {
+            $data['cover_photo'] = $request->file('cover_photo')->store('app-user-profiles', 'public');
+        }
+
+        $appUser = AppUser::create($data);
+        $appUser->packages()->sync($request->input('package_ids', []));
 
         return redirect()->route('app-users.index')->with('status', 'App user created successfully.');
     }
@@ -89,8 +111,11 @@ class AppUserController extends Controller
 
     public function edit(AppUser $app_user): View
     {
+        $app_user->load('packages');
+
         return view('app-users.edit', [
             'appUser' => $app_user,
+            'packages' => Package::query()->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -98,9 +123,14 @@ class AppUserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255', Rule::unique('app_users', 'username')->ignore($app_user->id)],
             'phone' => ['required', 'string', 'max:30', 'unique:app_users,phone,' . $app_user->id],
             'password' => ['nullable', 'string', 'min:6'],
             'is_active' => ['nullable', 'boolean'],
+            'profile_image' => ['nullable', 'image', 'max:2048'],
+            'cover_photo' => ['nullable', 'image', 'max:4096'],
+            'package_ids' => ['nullable', 'array'],
+            'package_ids.*' => ['integer', 'exists:packages,id'],
         ], [
             'phone.unique' => 'This phone number already exists.',
         ]);
@@ -111,7 +141,24 @@ class AppUserController extends Controller
 
         $data['is_active'] = $request->boolean('is_active');
 
+        if ($request->hasFile('profile_image')) {
+            if ($app_user->profile_image) {
+                Storage::disk('public')->delete($app_user->profile_image);
+            }
+
+            $data['profile_image'] = $request->file('profile_image')->store('app-user-profiles', 'public');
+        }
+
+        if ($request->hasFile('cover_photo')) {
+            if ($app_user->cover_photo) {
+                Storage::disk('public')->delete($app_user->cover_photo);
+            }
+
+            $data['cover_photo'] = $request->file('cover_photo')->store('app-user-profiles', 'public');
+        }
+
         $app_user->update($data);
+        $app_user->packages()->sync($request->input('package_ids', []));
 
         return redirect()->route('app-users.show', $app_user)->with('status', 'App user updated successfully.');
     }

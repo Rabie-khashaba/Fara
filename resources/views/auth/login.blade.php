@@ -26,16 +26,12 @@
                                     class="logo-dark"
                                 >
                                     <img
-                                        src="/images/logo-sm.png"
+                                        src="/images/Logo-white.svg"
                                         height="30"
                                         class="me-1"
                                         alt="logo sm"
                                     />
-                                    <img
-                                        src="/images/logo-dark.png"
-                                        height="24"
-                                        alt="logo dark"
-                                    />
+                                    <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
                                 </a>
 
                                 <a
@@ -43,16 +39,12 @@
                                     class="logo-light"
                                 >
                                     <img
-                                        src="/images/logo-sm.png"
+                                        src="/images/Logo-white.svg"
                                         height="30"
                                         class="me-1"
                                         alt="logo sm"
                                     />
-                                    <img
-                                        src="/images/logo-light.png"
-                                        height="24"
-                                        alt="logo light"
-                                    />
+                                    <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
                                 </a>
                             </div>
                             <h2
@@ -143,7 +135,7 @@
                                         </div>
                                     </form>
 
-                                    <p class="mt-3 fw-semibold no-span">
+                                    {{-- <p class="mt-3 fw-semibold no-span">
                                         OR sign with
                                     </p>
 
@@ -163,7 +155,7 @@
                                             class="btn btn-light shadow-none"
                                             aria-label="Sign in with Apple"><i
                                                 class="bx bxl-apple fs-20"></i></a>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
 

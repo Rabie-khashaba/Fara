@@ -61,6 +61,7 @@ class AppUserAuthService
             'username' => $data['username'],
             'phone' => $data['phone'],
             'password' => isset($data['password']) ? Hash::make($data['password']) : null,
+            'fcm_token' => $data['fcm_token'] ?? null,
             'provider' => $data['provider'] ?? null,
             'provider_id' => $data['provider_id'] ?? null,
             'otp' => $otp,
@@ -100,6 +101,7 @@ class AppUserAuthService
             'username' => $pendingRegistration['username'],
             'phone' => $pendingRegistration['phone'],
             'password' => $pendingRegistration['password'] ?: Str::password(32),
+            'fcm_token' => $pendingRegistration['fcm_token'] ?? null,
             'provider' => $pendingRegistration['provider'],
             'provider_id' => $pendingRegistration['provider_id'],
             'otp' => null,
@@ -186,7 +188,7 @@ class AppUserAuthService
         ];
     }
 
-    public function loginByPhone(string $phone, string $password): array
+    public function loginByPhone(string $phone, string $password, ?string $fcmToken = null): array
     {
         $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
@@ -200,6 +202,12 @@ class AppUserAuthService
 
         if (! $appUser->is_active) {
             return ['error' => 'This account is blocked', 'code' => 403];
+        }
+
+        if ($fcmToken !== null) {
+            $appUser->forceFill([
+                'fcm_token' => $fcmToken,
+            ])->save();
         }
 
         $token = $appUser->createToken('app-user-token')->plainTextToken;

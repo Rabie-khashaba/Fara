@@ -16,6 +16,7 @@ class LoginRequest extends ApiFormRequest
         return [
             'phone' => ['required', 'string', 'max:30'],
             'password' => ['required', 'string'],
+            'fcm_token' => ['sometimes', 'nullable', 'string', 'max:5000'],
         ];
     }
 }

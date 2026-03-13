@@ -54,7 +54,11 @@ class AppUserAuthController extends Controller
         return $this->executeSafely(function () use ($request): array {
             $data = $request->validated();
 
-            return $this->authService->loginByPhone($data['phone'], $data['password']);
+            return $this->authService->loginByPhone(
+                $data['phone'],
+                $data['password'],
+                $data['fcm_token'] ?? null
+            );
         });
     }
 

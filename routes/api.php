@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\AppUserPostLikeController;
 use App\Http\Controllers\Api\AppUserProfileController;
 use App\Http\Controllers\Api\AppUserSharedPostController;
 use App\Http\Controllers\Api\AppUserSocialAuthController;
+use App\Http\Controllers\Api\FirebaseNotificationController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('app-user/auth')->group(function (): void {
@@ -78,4 +80,15 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('check-ins', [AppUserCheckInController::class, 'index']);
     Route::post('check-ins', [AppUserCheckInController::class, 'store']);
     Route::post('check-in-cities/{city}/check-in', [AppUserCheckInController::class, 'storeByCity']);
+
+
+
+
+    //firebase notification
+    Route::post('users/fcm-token', [FirebaseNotificationController::class, 'updateToken']);
+    Route::get('notifications', [FirebaseNotificationController::class, 'myNotifications']);
+    Route::patch('notifications/{notification}/read', [FirebaseNotificationController::class, 'markAsRead']);
+    Route::post('notifications/firebase/send', [FirebaseNotificationController::class, 'send']);
+    Route::post('notifications/firebase/send-bulk', [FirebaseNotificationController::class, 'sendBulk']);
+
 });

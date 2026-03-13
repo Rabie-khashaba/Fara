@@ -52,6 +52,15 @@
                 </div>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('notifications.index') }}">
+                    <span class="nav-icon">
+                        <iconify-icon icon="iconamoon:notification-duotone"></iconify-icon>
+                    </span>
+                    <span class="nav-text"> Notifications </span>
+                </a>
+            </li>
+
             <li class="menu-title">Custom</li>
 
             @can('view_settings')

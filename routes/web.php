@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\SettingPermissionController;
 use App\Http\Controllers\SettingRoleController;
@@ -24,6 +25,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         ->except(['destroy']);
     Route::patch('app-users/{app_user}/toggle-status', [AppUserController::class, 'toggleStatus'])->name('app-users.toggle-status');
     Route::patch('app-users/{app_user}/posts/{post}/toggle-visibility', [AppUserController::class, 'togglePostVisibility'])->name('app-users.posts.toggle-visibility');
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
+    Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
 
     Route::resource('settings/roles', SettingRoleController::class)->names('settings.roles');
 

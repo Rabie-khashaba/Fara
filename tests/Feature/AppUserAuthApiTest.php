@@ -7,6 +7,7 @@ use App\Models\AppUserSocialAccount;
 use App\Services\AppleTokenVerifier;
 use App\Services\FacebookTokenVerifier;
 use App\Services\GoogleTokenVerifier;
+use App\Services\WhatsAppService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -23,12 +24,20 @@ class AppUserAuthApiTest extends TestCase
 
     public function test_app_user_is_not_created_until_register_otp_is_verified(): void
     {
+        $this->mock(WhatsAppService::class, function (Mockery\MockInterface $mock): void {
+            $mock->shouldReceive('send')->once()->andReturn([
+                'success' => true,
+                'data' => [],
+            ]);
+        });
+
         $response = $this->postJson('/api/app-user/auth/register', [
             'full_name' => 'Test User',
             'username' => 'testuser',
             'phone' => '01000000000',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
+            'fcm_token' => 'register-fcm-token',
         ]);
 
         $response->assertCreated();
@@ -49,6 +58,7 @@ class AppUserAuthApiTest extends TestCase
         $this->assertDatabaseHas('app_users', [
             'phone' => '01000000000',
             'username' => 'testuser',
+            'fcm_token' => 'register-fcm-token',
         ]);
     }
 
@@ -70,6 +80,30 @@ class AppUserAuthApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonStructure(['status', 'message', 'data' => ['token', 'user' => ['id', 'full_name', 'username', 'phone']]]);
+    }
+
+    public function test_app_user_login_can_store_fcm_token_when_provided(): void
+    {
+        $appUser = AppUser::query()->create([
+            'name' => 'Test User',
+            'username' => 'testuserfcm',
+            'phone' => '01000000013',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        $this->postJson('/api/app-user/auth/login', [
+            'phone' => '01000000013',
+            'password' => 'secret123',
+            'fcm_token' => 'sample-fcm-token',
+        ])
+            ->assertOk()
+            ->assertJsonStructure(['status', 'message', 'data' => ['token', 'user' => ['id', 'full_name', 'username', 'phone']]]);
+
+        $this->assertDatabaseHas('app_users', [
+            'id' => $appUser->id,
+            'fcm_token' => 'sample-fcm-token',
+        ]);
     }
 
     public function test_app_user_can_login_with_social_token_when_account_is_already_linked(): void

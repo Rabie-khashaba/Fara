@@ -31,6 +31,7 @@ class AppUser extends Authenticatable
         'provider',
         'provider_id',
         'is_active',
+        'fcm_token',
         'profile_image',
         'cover_photo',
     ];
@@ -104,6 +105,16 @@ class AppUser extends Authenticatable
     public function checkIns(): HasMany
     {
         return $this->hasMany(AppUserCheckIn::class);
+    }
+
+    public function sentNotifications(): HasMany
+    {
+        return $this->hasMany(AppUserNotification::class, 'sender_app_user_id');
+    }
+
+    public function receivedNotifications(): HasMany
+    {
+        return $this->hasMany(AppUserNotification::class, 'recipient_app_user_id');
     }
 
     public function likedPosts(): HasManyThrough

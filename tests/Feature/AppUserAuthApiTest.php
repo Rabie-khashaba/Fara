@@ -9,6 +9,8 @@ use App\Services\FacebookTokenVerifier;
 use App\Services\GoogleTokenVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
 use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -297,6 +299,129 @@ class AppUserAuthApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', true)
             ->assertJsonPath('data.user.provider', 'apple');
+    }
+
+    public function test_app_user_can_delete_own_profile(): void
+    {
+        Storage::fake('public');
+
+        Storage::disk('public')->put('app-user-profiles/profile.jpg', 'profile');
+        Storage::disk('public')->put('app-user-profiles/cover.jpg', 'cover');
+
+        $appUser = AppUser::query()->create([
+            'name' => 'Delete Me',
+            'username' => 'deleteme',
+            'phone' => '01000000006',
+            'password' => 'secret123',
+            'is_active' => true,
+            'profile_image' => 'app-user-profiles/profile.jpg',
+            'cover_photo' => 'app-user-profiles/cover.jpg',
+        ]);
+
+        Sanctum::actingAs($appUser);
+        $appUser->createToken('app-user-token');
+
+        $this->deleteJson('/api/app-user/profile/'.$appUser->id)
+            ->assertOk()
+            ->assertJson([
+                'status' => true,
+                'message' => 'Profile deleted successfully',
+            ]);
+
+        $this->assertDatabaseMissing('app_users', ['id' => $appUser->id]);
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_type' => AppUser::class,
+            'tokenable_id' => $appUser->id,
+        ]);
+        Storage::disk('public')->assertMissing('app-user-profiles/profile.jpg');
+        Storage::disk('public')->assertMissing('app-user-profiles/cover.jpg');
+    }
+
+    public function test_app_user_cannot_delete_another_profile_by_id(): void
+    {
+        $authenticatedUser = AppUser::query()->create([
+            'name' => 'Authenticated User',
+            'username' => 'authuser',
+            'phone' => '01000000007',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        $otherUser = AppUser::query()->create([
+            'name' => 'Other User',
+            'username' => 'otheruser',
+            'phone' => '01000000008',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($authenticatedUser);
+
+        $this->deleteJson('/api/app-user/profile/'.$otherUser->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('app_users', ['id' => $otherUser->id]);
+    }
+
+    public function test_app_user_can_update_own_profile_by_id(): void
+    {
+        $appUser = AppUser::query()->create([
+            'name' => 'Old Name',
+            'username' => 'oldname',
+            'phone' => '01000000009',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($appUser);
+
+        $this->postJson('/api/app-user/profile/'.$appUser->id, [
+            'name' => 'New Name',
+            'username' => 'newname',
+            'phone' => '01000000009',
+        ])
+            ->assertOk()
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.profile.id', $appUser->id)
+            ->assertJsonPath('data.profile.name', 'New Name')
+            ->assertJsonPath('data.profile.username', 'newname');
+
+        $this->assertDatabaseHas('app_users', [
+            'id' => $appUser->id,
+            'name' => 'New Name',
+            'username' => 'newname',
+        ]);
+    }
+
+    public function test_app_user_cannot_update_another_profile_by_id(): void
+    {
+        $authenticatedUser = AppUser::query()->create([
+            'name' => 'Authenticated User',
+            'username' => 'authuser2',
+            'phone' => '01000000010',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        $otherUser = AppUser::query()->create([
+            'name' => 'Other User',
+            'username' => 'otheruser2',
+            'phone' => '01000000011',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($authenticatedUser);
+
+        $this->postJson('/api/app-user/profile/'.$otherUser->id, [
+            'name' => 'Hacked Name',
+            'phone' => '01000000011',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('app_users', [
+            'id' => $otherUser->id,
+            'name' => 'Other User',
+        ]);
     }
 
     protected function makeSocialiteUser(string $id, string $name): SocialiteUser

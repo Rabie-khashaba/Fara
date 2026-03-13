@@ -8,6 +8,7 @@ use App\Models\AppUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class AppUserProfileController extends Controller
@@ -25,51 +26,64 @@ class AppUserProfileController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
 
-        $data = $request->validated();
+        return $this->updateProfile($request, $appUser);
+    }
 
-        if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $this->storeProfileAsset(
-                $request->file('profile_image'),
-                $appUser->profile_image
-            );
-        }
+    public function updateById(UpdateProfileRequest $request, int $appUserId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
 
-        if ($request->hasFile('cover_photo')) {
-            $data['cover_photo'] = $this->storeProfileAsset(
-                $request->file('cover_photo'),
-                $appUser->cover_photo
-            );
-        }
+        abort_if($appUser->id !== $appUserId, 403, 'Unauthorized');
 
-        $appUser->update($data);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Profile updated successfully',
-            'data' => [
-                'profile' => [
-                    'id' => $appUser->id,
-                    'name' => $appUser->name,
-                    'username' => $appUser->username,
-                    'email' => $appUser->email,
-                    'phone' => $appUser->phone,
-                    'provider' => $appUser->provider,
-                    'provider_id' => $appUser->provider_id,
-                    'is_active' => $appUser->is_active,
-                    'profile_image' => $appUser->profile_image,
-                    'profile_image_url' => $appUser->profile_image_url,
-                    'cover_photo' => $appUser->cover_photo,
-                    'cover_photo_url' => $appUser->cover_photo_url,
-                    'created_at' => $appUser->created_at,
-                    'updated_at' => $appUser->updated_at,
-                ],
-            ],
-        ]);
+        return $this->updateProfile($request, $appUser);
     }
 
     public function show(int $appUserId): JsonResponse
     {
         return $this->profileResponse($appUserId, false);
+    }
+
+    public function destroy(Request $request): JsonResponse
+    {
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user();
+
+        return $this->deleteProfile($appUser);
+    }
+
+    public function destroyById(Request $request, int $appUserId): JsonResponse
+    {
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user();
+
+        if (! $appUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        abort_if($appUser->id !== $appUserId, 403, 'Unauthorized');
+
+        return $this->deleteProfile($appUser);
+    }
+
+    private function deleteProfile(AppUser $appUser): JsonResponse
+    {
+        DB::transaction(function () use ($appUser): void {
+            foreach (array_filter([$appUser->profile_image, $appUser->cover_photo]) as $path) {
+                Storage::disk('public')->delete($path);
+            }
+
+            $appUser->tokens()->delete();
+            $appUser->delete();
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profile deleted successfully',
+        ]);
     }
 
     private function profileResponse(int $appUserId, bool $isMe): JsonResponse
@@ -228,5 +242,49 @@ class AppUserProfileController extends Controller
         }
 
         return $file->store('app-user-profiles', 'public');
+    }
+
+    private function updateProfile(UpdateProfileRequest $request, AppUser $appUser): JsonResponse
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('profile_image')) {
+            $data['profile_image'] = $this->storeProfileAsset(
+                $request->file('profile_image'),
+                $appUser->profile_image
+            );
+        }
+
+        if ($request->hasFile('cover_photo')) {
+            $data['cover_photo'] = $this->storeProfileAsset(
+                $request->file('cover_photo'),
+                $appUser->cover_photo
+            );
+        }
+
+        $appUser->update($data);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'profile' => [
+                    'id' => $appUser->id,
+                    'name' => $appUser->name,
+                    'username' => $appUser->username,
+                    'email' => $appUser->email,
+                    'phone' => $appUser->phone,
+                    'provider' => $appUser->provider,
+                    'provider_id' => $appUser->provider_id,
+                    'is_active' => $appUser->is_active,
+                    'profile_image' => $appUser->profile_image,
+                    'profile_image_url' => $appUser->profile_image_url,
+                    'cover_photo' => $appUser->cover_photo,
+                    'cover_photo_url' => $appUser->cover_photo_url,
+                    'created_at' => $appUser->created_at,
+                    'updated_at' => $appUser->updated_at,
+                ],
+            ],
+        ]);
     }
 }

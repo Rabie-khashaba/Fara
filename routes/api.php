@@ -47,6 +47,9 @@ Route::get('app-user/shared-posts/{id}', [AppUserSharedPostController::class, 's
 Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('profile', [AppUserProfileController::class, 'me']);
     Route::post('profile', [AppUserProfileController::class, 'update']);
+    Route::post('profile/{appUserId}', [AppUserProfileController::class, 'updateById']);
+    Route::delete('profile', [AppUserProfileController::class, 'destroy']);
+    Route::delete('profile/{appUserId}', [AppUserProfileController::class, 'destroyById']);
 
     Route::get('posts', [AppUserPostController::class, 'index']);
     Route::get('my-posts', [AppUserPostController::class, 'myPosts']);

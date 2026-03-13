@@ -9,7 +9,14 @@ class UpdateProfileRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $authenticatedUserId = $this->user('sanctum')?->id ?? $this->user()?->id;
+        $routeAppUserId = $this->route('appUserId');
+
+        if ($routeAppUserId === null) {
+            return $authenticatedUserId !== null;
+        }
+
+        return (int) $authenticatedUserId === (int) $routeAppUserId;
     }
 
     public function rules(): array

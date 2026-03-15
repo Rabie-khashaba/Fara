@@ -1,0 +1,292 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\AppUserChat\StartDirectConversationRequest;
+use App\Http\Requests\Api\AppUserChat\StoreMessageRequest;
+use App\Models\AppUser;
+use App\Models\AppUserConversation;
+use App\Models\AppUserConversationMessage;
+use App\Models\AppUserConversationParticipant;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+
+class AppUserChatController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+
+        $conversations = AppUserConversation::query()
+            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $appUser->id))
+            ->with([
+                'participants.appUser:id,name,username,profile_image',
+                'latestMessage.sender:id,name,username,profile_image',
+            ])
+            ->withCount([
+                'messages as unread_messages_count' => function ($query) use ($appUser) {
+                    $query
+                        ->where('sender_app_user_id', '!=', $appUser->id)
+                        ->whereExists(function ($subQuery) use ($appUser) {
+                            $subQuery->selectRaw('1')
+                                ->from('app_user_conversation_participants as participant')
+                                ->whereColumn(
+                                    'participant.app_user_conversation_id',
+                                    'app_user_conversation_messages.app_user_conversation_id'
+                                )
+                                ->where('participant.app_user_id', $appUser->id)
+                                ->where(function ($nestedQuery) {
+                                    $nestedQuery
+                                        ->whereNull('participant.last_read_at')
+                                        ->orWhereColumn(
+                                            'app_user_conversation_messages.created_at',
+                                            '>',
+                                            'participant.last_read_at'
+                                        );
+                                });
+                        });
+                },
+            ])
+            ->orderByDesc(DB::raw('COALESCE(last_message_at, created_at)'))
+            ->get()
+            ->map(fn (AppUserConversation $conversation) => $this->formatConversationSummary($conversation, $appUser));
+
+        return response()->json([
+            'status' => true,
+            'data' => $conversations,
+        ]);
+    }
+
+    public function startDirectConversation(StartDirectConversationRequest $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $recipientId = (int) $request->validated()['recipient_app_user_id'];
+
+        $existingConversation = $this->findDirectConversation($appUser->id, $recipientId);
+
+        if ($existingConversation) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Conversation loaded successfully',
+                'data' => $this->formatConversationDetails($existingConversation, $appUser),
+            ]);
+        }
+
+        $conversation = DB::transaction(function () use ($appUser, $recipientId) {
+            $conversation = AppUserConversation::query()->create([
+                'type' => 'direct',
+                'created_by_app_user_id' => $appUser->id,
+            ]);
+
+            $conversation->participants()->createMany([
+                [
+                    'app_user_id' => $appUser->id,
+                    'last_read_at' => now(),
+                    'joined_at' => now(),
+                ],
+                [
+                    'app_user_id' => $recipientId,
+                    'joined_at' => now(),
+                ],
+            ]);
+
+            return $conversation->fresh([
+                'participants.appUser:id,name,username,profile_image',
+                'latestMessage.sender:id,name,username,profile_image',
+            ]);
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Conversation created successfully',
+            'data' => $this->formatConversationDetails($conversation, $appUser),
+        ], 201);
+    }
+
+    public function show(Request $request, int $conversationId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+
+        return response()->json([
+            'status' => true,
+            'data' => $this->formatConversationDetails($conversation, $appUser),
+        ]);
+    }
+
+    public function messages(Request $request, int $conversationId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+
+        $messages = $conversation->messages()
+            ->with('sender:id,name,username,profile_image')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (AppUserConversationMessage $message) => $this->formatMessage($message, $appUser));
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'conversation' => $this->formatConversationDetails($conversation, $appUser),
+                'messages' => $messages,
+            ],
+        ]);
+    }
+
+    public function storeMessage(StoreMessageRequest $request, int $conversationId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+        $data = $request->validated();
+
+        $message = DB::transaction(function () use ($conversation, $appUser, $data) {
+            $message = $conversation->messages()->create([
+                'sender_app_user_id' => $appUser->id,
+                'type' => $data['type'] ?? 'text',
+                'body' => $data['body'],
+            ]);
+
+            $conversation->update([
+                'last_message_at' => $message->created_at,
+            ]);
+
+            AppUserConversationParticipant::query()
+                ->where('app_user_conversation_id', $conversation->id)
+                ->where('app_user_id', $appUser->id)
+                ->update([
+                    'last_read_at' => $message->created_at,
+                ]);
+
+            return $message->load('sender:id,name,username,profile_image');
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Message sent successfully',
+            'data' => $this->formatMessage($message, $appUser),
+        ], 201);
+    }
+
+    public function markAsRead(Request $request, int $conversationId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+        $latestMessageAt = $conversation->latestMessage?->created_at ?? now();
+
+        AppUserConversationParticipant::query()
+            ->where('app_user_conversation_id', $conversation->id)
+            ->where('app_user_id', $appUser->id)
+            ->update([
+                'last_read_at' => $latestMessageAt,
+            ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Conversation marked as read successfully',
+        ]);
+    }
+
+    private function getAuthorizedConversation(int $conversationId, int $appUserId): AppUserConversation
+    {
+        $conversation = AppUserConversation::query()
+            ->whereKey($conversationId)
+            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $appUserId))
+            ->with([
+                'participants.appUser:id,name,username,profile_image',
+                'latestMessage.sender:id,name,username,profile_image',
+            ])
+            ->firstOrFail();
+
+        return $conversation;
+    }
+
+    private function findDirectConversation(int $firstUserId, int $secondUserId): ?AppUserConversation
+    {
+        return AppUserConversation::query()
+            ->where('type', 'direct')
+            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $firstUserId))
+            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $secondUserId))
+            ->has('participants', '=', 2)
+            ->with([
+                'participants.appUser:id,name,username,profile_image',
+                'latestMessage.sender:id,name,username,profile_image',
+            ])
+            ->first();
+    }
+
+    private function formatConversationSummary(AppUserConversation $conversation, AppUser $authUser): array
+    {
+        $currentParticipant = $conversation->participants
+            ->firstWhere('app_user_id', $authUser->id);
+
+        $otherParticipant = $conversation->participants
+            ->firstWhere('app_user_id', '!=', $authUser->id);
+
+        return [
+            'id' => $conversation->id,
+            'type' => $conversation->type,
+            'participant' => $otherParticipant ? $this->formatUser($otherParticipant->appUser) : null,
+            'last_message' => $conversation->latestMessage
+                ? $this->formatMessage($conversation->latestMessage, $authUser)
+                : null,
+            'unread_messages_count' => (int) ($conversation->unread_messages_count ?? 0),
+            'last_read_at' => $currentParticipant?->last_read_at?->toISOString(),
+            'last_message_at' => $conversation->last_message_at?->toISOString(),
+            'created_at' => $conversation->created_at?->toISOString(),
+        ];
+    }
+
+    private function formatConversationDetails(AppUserConversation $conversation, AppUser $authUser): array
+    {
+        return [
+            ...$this->formatConversationSummary($conversation, $authUser),
+            'participants' => $conversation->participants
+                ->map(fn (AppUserConversationParticipant $participant) => $this->formatUser($participant->appUser))
+                ->values(),
+        ];
+    }
+
+    private function formatMessage(AppUserConversationMessage $message, AppUser $authUser): array
+    {
+        return [
+            'id' => $message->id,
+            'conversation_id' => $message->app_user_conversation_id,
+            'sender' => $this->formatUser($message->sender),
+            'type' => $message->type,
+            'body' => $message->body,
+            'meta' => $message->meta,
+            'is_mine' => $message->sender_app_user_id === $authUser->id,
+            'created_at' => $message->created_at?->toISOString(),
+            'created_at_label' => $this->formatTimeLabel($message->created_at),
+        ];
+    }
+
+    private function formatUser(?AppUser $appUser): ?array
+    {
+        if (! $appUser) {
+            return null;
+        }
+
+        return [
+            'id' => $appUser->id,
+            'name' => $appUser->name,
+            'username' => $appUser->username,
+            'profile_image_url' => $appUser->profile_image_url,
+        ];
+    }
+
+    private function formatTimeLabel(?Carbon $timestamp): ?string
+    {
+        return $timestamp?->format('H:i');
+    }
+}

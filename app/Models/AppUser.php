@@ -117,6 +117,21 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserNotification::class, 'recipient_app_user_id');
     }
 
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(AppUserConversationParticipant::class);
+    }
+
+    public function createdConversations(): HasMany
+    {
+        return $this->hasMany(AppUserConversation::class, 'created_by_app_user_id');
+    }
+
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(AppUserConversationMessage::class, 'sender_app_user_id');
+    }
+
     public function likedPosts(): HasManyThrough
     {
         return $this->hasManyThrough(

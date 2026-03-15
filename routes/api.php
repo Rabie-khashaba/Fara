@@ -3,6 +3,7 @@
 use App\Enums\SocialAuthProvider;
 use App\Http\Controllers\Api\AppUserActivityController;
 use App\Http\Controllers\Api\AppUserAuthController;
+use App\Http\Controllers\Api\AppUserChatController;
 use App\Http\Controllers\Api\AppUserCheckInController;
 use App\Http\Controllers\Api\AppUserFollowController;
 use App\Http\Controllers\Api\AppUserPostCommentController;
@@ -76,6 +77,16 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::delete('follow/{appUserId}', [AppUserFollowController::class, 'destroy']);
 
     Route::get('activities', [AppUserActivityController::class, 'index']);
+
+    //chat
+    Route::get('chats', [AppUserChatController::class, 'index']);
+    Route::post('chats/direct', [AppUserChatController::class, 'startDirectConversation']);
+    Route::get('chats/{conversationId}', [AppUserChatController::class, 'show']);
+    Route::get('chats/{conversationId}/messages', [AppUserChatController::class, 'messages']);
+    Route::post('chats/{conversationId}/messages', [AppUserChatController::class, 'storeMessage']);
+    Route::patch('chats/{conversationId}/read', [AppUserChatController::class, 'markAsRead']);
+
+    //check-in
     Route::get('check-in-cities', [AppUserCheckInController::class, 'cities']);
     Route::get('check-ins', [AppUserCheckInController::class, 'index']);
     Route::post('check-ins', [AppUserCheckInController::class, 'store']);

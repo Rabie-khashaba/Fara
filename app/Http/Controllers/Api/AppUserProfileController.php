@@ -93,13 +93,19 @@ class AppUserProfileController extends Controller
                 'posts' => fn ($query) => $query
                     ->visible()
                     ->with(['repostedPost.appUser:id,name,username'])
-                    ->withCount(['likes', 'comments'])
+                    ->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])
                     ->latest(),
                 'comments' => fn ($query) => $query
                     ->with(['post:id,content,location,app_user_id', 'post.appUser:id,name,username'])
                     ->latest(),
                 'likes' => fn ($query) => $query
-                    ->with(['post' => fn ($postQuery) => $postQuery->withCount(['likes', 'comments'])])
+                    ->with(['post' => fn ($postQuery) => $postQuery->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])])
+                    ->latest(),
+                'sharedPosts' => fn ($query) => $query
+                    ->with(['post' => fn ($postQuery) => $postQuery->with(['appUser:id,name,username'])->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])])
+                    ->latest(),
+                'savedPosts' => fn ($query) => $query
+                    ->with(['post' => fn ($postQuery) => $postQuery->with(['appUser:id,name,username'])->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])])
                     ->latest(),
                 'followers.follower:id,name,username,email,phone',
                 'following.following:id,name,username,email,phone',
@@ -118,6 +124,8 @@ class AppUserProfileController extends Controller
             'created_at' => $post->created_at,
             'likes_count' => $post->likes_count,
             'comments_count' => $post->comments_count,
+            'shares_count' => $post->shared_posts_count,
+            'saved_count' => $post->saved_posts_count,
             'is_repost' => (bool) $post->reposted_post_id,
             'reposted_post' => $post->repostedPost ? [
                 'id' => $post->repostedPost->id,
@@ -161,7 +169,45 @@ class AppUserProfileController extends Controller
                 'status' => $like->post?->status,
                 'likes_count' => $like->post?->likes_count,
                 'comments_count' => $like->post?->comments_count,
+                'shares_count' => $like->post?->shared_posts_count,
+                'saved_count' => $like->post?->saved_posts_count,
                 'author_id' => $like->post?->app_user_id,
+            ],
+        ]);
+
+        $sharedPosts = $appUser->sharedPosts->map(fn ($sharedPost) => [
+            'shared_post_id' => $sharedPost->id,
+            'shared_at' => $sharedPost->created_at,
+            'post' => [
+                'id' => $sharedPost->post?->id,
+                'content' => $sharedPost->post?->content,
+                'image' => $sharedPost->post?->image,
+                'image_url' => $sharedPost->post?->image_url,
+                'location' => $sharedPost->post?->location,
+                'status' => $sharedPost->post?->status,
+                'likes_count' => $sharedPost->post?->likes_count,
+                'comments_count' => $sharedPost->post?->comments_count,
+                'shares_count' => $sharedPost->post?->shared_posts_count,
+                'saved_count' => $sharedPost->post?->saved_posts_count,
+                'author_id' => $sharedPost->post?->app_user_id,
+            ],
+        ]);
+
+        $savedPosts = $appUser->savedPosts->map(fn ($savedPost) => [
+            'saved_post_id' => $savedPost->id,
+            'saved_at' => $savedPost->created_at,
+            'post' => [
+                'id' => $savedPost->post?->id,
+                'content' => $savedPost->post?->content,
+                'image' => $savedPost->post?->image,
+                'image_url' => $savedPost->post?->image_url,
+                'location' => $savedPost->post?->location,
+                'status' => $savedPost->post?->status,
+                'likes_count' => $savedPost->post?->likes_count,
+                'comments_count' => $savedPost->post?->comments_count,
+                'shares_count' => $savedPost->post?->shared_posts_count,
+                'saved_count' => $savedPost->post?->saved_posts_count,
+                'author_id' => $savedPost->post?->app_user_id,
             ],
         ]);
 
@@ -191,6 +237,8 @@ class AppUserProfileController extends Controller
 
         $postsLikesCount = (int) $appUser->posts->sum('likes_count');
         $postsCommentsCount = (int) $appUser->posts->sum('comments_count');
+        $postsSharesCount = (int) $appUser->posts->sum('shared_posts_count');
+        $postsSavedCount = (int) $appUser->posts->sum('saved_posts_count');
 
         return response()->json([
             'status' => true,
@@ -216,16 +264,22 @@ class AppUserProfileController extends Controller
                 'posts' => $posts,
                 'comments' => $comments,
                 'liked_posts' => $likedPosts,
+                'shared_posts' => $sharedPosts,
+                'saved_posts' => $savedPosts,
                 'followers' => $followers,
                 'following' => $following,
                 'counts' => [
                     'posts' => $appUser->posts->count(),
                     'likes' => $postsLikesCount,
                     'comments' => $postsCommentsCount,
+                    'shares' => $postsSharesCount,
+                    'saved' => $postsSavedCount,
                     'followers' => $appUser->followers->count(),
                     'following' => $appUser->following->count(),
                     'my_comments' => $appUser->comments->count(),
                     'my_likes' => $appUser->likes->count(),
+                    'my_shared' => $appUser->sharedPosts->count(),
+                    'my_saved' => $appUser->savedPosts->count(),
                 ],
             ],
         ]);

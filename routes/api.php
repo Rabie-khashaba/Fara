@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AppUserPostCommentController;
 use App\Http\Controllers\Api\AppUserPostController;
 use App\Http\Controllers\Api\AppUserPostLikeController;
 use App\Http\Controllers\Api\AppUserProfileController;
+use App\Http\Controllers\Api\AppUserSavedPostController;
 use App\Http\Controllers\Api\AppUserSharedPostController;
 use App\Http\Controllers\Api\AppUserSocialAuthController;
 use App\Http\Controllers\Api\FirebaseNotificationController;
@@ -57,6 +58,10 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('posts', [AppUserPostController::class, 'index']);
     Route::get('my-posts', [AppUserPostController::class, 'myPosts']);
     Route::get('my-reposts', [AppUserPostController::class, 'myReposts']);
+
+    Route::get('my-likes', [AppUserPostLikeController::class, 'myLikes']);
+    Route::get('my-saved-posts', [AppUserSavedPostController::class, 'mySaved']);
+
     Route::get('following-posts', [AppUserPostController::class, 'followingPosts']);
     Route::post('posts', [AppUserPostController::class, 'store']);
     Route::get('posts/{id}', [AppUserPostController::class, 'show']);
@@ -65,6 +70,10 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::post('posts/{id}/repost', [AppUserPostController::class, 'repost']);
     Route::post('posts/{id}/share', [AppUserSharedPostController::class, 'store']);
     Route::delete('posts/{id}/share', [AppUserSharedPostController::class, 'destroy']);
+
+    Route::post('posts/{id}/save', [AppUserSavedPostController::class, 'store']);
+    Route::delete('posts/{id}/save', [AppUserSavedPostController::class, 'destroy']);
+
     Route::post('posts/{id}/likes', [AppUserPostLikeController::class, 'store']);
     Route::delete('posts/{id}/likes', [AppUserPostLikeController::class, 'destroy']);
 

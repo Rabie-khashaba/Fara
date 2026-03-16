@@ -75,6 +75,11 @@ class AppUserPost extends Model
         return $this->hasMany(AppUserSharedPost::class, 'app_user_post_id');
     }
 
+    public function savedPosts(): HasMany
+    {
+        return $this->hasMany(AppUserSavedPost::class, 'app_user_post_id');
+    }
+
     public function getImageUrlAttribute(): ?string
     {
         return $this->toPublicUrl($this->image);

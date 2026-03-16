@@ -45,7 +45,10 @@
                 <div class="collapse" id="sidebarAppUsers">
                     <ul class="nav sub-navbar-nav">
                         <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('app-users.index') }}">Users List</a>
+                            <a class="sub-nav-link" href="{{ route('app-users.index', ['status' => 'active']) }}">Users</a>
+                        </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('app-users.index', ['status' => 'inactive']) }}">Blocked Users</a>
                         </li>
 
                     </ul>
@@ -58,6 +61,24 @@
                         <iconify-icon icon="iconamoon:notification-duotone"></iconify-icon>
                     </span>
                     <span class="nav-text"> Notifications </span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('places.index') }}">
+                    <span class="nav-icon">
+                        <i class="bx bx-map-alt"></i>
+                    </span>
+                    <span class="nav-text"> Places Management </span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('reports.index') }}">
+                    <span class="nav-icon">
+                        <i class="bx bx-bar-chart-alt-2"></i>
+                    </span>
+                    <span class="nav-text"> Reports </span>
                 </a>
             </li>
 

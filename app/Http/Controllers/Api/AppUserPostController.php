@@ -29,7 +29,7 @@ class AppUserPostController extends Controller
         $posts = AppUserPost::query()
             ->visible()
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-            ->withCount(['likes', 'comments', 'reposts'])
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
             ->latest()
             ->get()
             ->map(function (AppUserPost $post) use ($followingIds) {
@@ -51,7 +51,7 @@ class AppUserPostController extends Controller
 
         $posts = $appUser->posts()
             ->visible()
-            ->withCount(['likes', 'comments'])
+            ->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])
             ->latest()
             ->get();
 
@@ -71,7 +71,7 @@ class AppUserPostController extends Controller
                 'post' => fn ($query) => $query
                     ->visible()
                     ->with(['appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts']),
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ])
             ->latest()
             ->get();
@@ -93,7 +93,7 @@ class AppUserPostController extends Controller
             ->visible()
             ->whereIn('app_user_id', $followingIds)
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-            ->withCount(['likes', 'comments', 'reposts'])
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
             ->latest()
             ->get();
 
@@ -122,7 +122,7 @@ class AppUserPostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Post created successfully',
-            'data' => $post->loadCount(['likes', 'comments']),
+            'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
         ], 201);
     }
 
@@ -132,7 +132,7 @@ class AppUserPostController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $post->load(['appUser', 'comments.appUser', 'repostedPost.appUser'])->loadCount(['likes', 'comments', 'reposts']),
+            'data' => $post->load(['appUser', 'comments.appUser', 'repostedPost.appUser'])->loadCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
         ]);
     }
 
@@ -157,7 +157,7 @@ class AppUserPostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Post updated successfully',
-            'data' => $post->fresh()->loadCount(['likes', 'comments']),
+            'data' => $post->fresh()->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
         ]);
     }
 
@@ -198,7 +198,7 @@ class AppUserPostController extends Controller
                 'appUser:id,name,username',
                 'post' => fn ($query) => $query
                     ->with(['appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts']),
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ]),
         ], $repost->wasRecentlyCreated ? 201 : 200);
     }

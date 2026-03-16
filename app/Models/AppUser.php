@@ -102,6 +102,11 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserSharedPost::class);
     }
 
+    public function savedPosts(): HasMany
+    {
+        return $this->hasMany(AppUserSavedPost::class);
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(AppUserActivity::class);

@@ -12,6 +12,7 @@ class AppUserCheckInCity extends Model
 
     protected $fillable = [
         'name',
+        'category',
         'slug',
         'country_code',
         'latitude',

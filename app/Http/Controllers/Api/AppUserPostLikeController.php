@@ -11,6 +11,28 @@ use Illuminate\Http\Request;
 
 class AppUserPostLikeController extends Controller
 {
+    public function myLikes(Request $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+
+        $likedPosts = $appUser->likes()
+            ->with([
+                'post' => fn ($query) => $query
+                    ->visible()
+                    ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
+            ])
+            ->whereHas('post', fn ($query) => $query->visible())
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $likedPosts,
+        ]);
+    }
+
     public function store(Request $request, int $id): JsonResponse
     {
         /** @var AppUser $appUser */

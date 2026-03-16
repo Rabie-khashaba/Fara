@@ -20,7 +20,7 @@ class AppUserSharedPostController extends Controller
                 'post' => fn ($query) => $query
                     ->visible()
                     ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts']),
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ])
             ->whereHas('post', fn ($query) => $query->visible())
             ->latest()
@@ -40,7 +40,7 @@ class AppUserSharedPostController extends Controller
                 'post' => fn ($query) => $query
                     ->visible()
                     ->with(['appUser:id,name,username', 'comments.appUser', 'repostedPost.appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts']),
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ])
             ->whereHas('post', fn ($query) => $query->visible())
             ->findOrFail($id);
@@ -81,7 +81,7 @@ class AppUserSharedPostController extends Controller
                 'appUser:id,name,username',
                 'post' => fn ($query) => $query
                     ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts']),
+                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ]),
         ], $sharedPost->wasRecentlyCreated ? 201 : 200);
     }

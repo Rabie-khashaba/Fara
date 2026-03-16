@@ -21,6 +21,7 @@ class AppUserCheckInController extends Controller
             ->get([
                 'id',
                 'name',
+                'category',
                 'slug',
                 'country_code',
                 'latitude',
@@ -113,6 +114,7 @@ class AppUserCheckInController extends Controller
 
         return AppUserCheckInCity::query()->create([
             'name' => $name,
+            'category' => 'other',
             'slug' => Str::slug($name) . '-' . Str::lower(Str::random(6)),
             'country_code' => 'SA',
             'latitude' => $latitude,

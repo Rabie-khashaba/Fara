@@ -31,7 +31,14 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::resource('places', PlaceController::class)
         ->parameters(['places' => 'place'])
         ->except(['show', 'destroy']);
-    Route::get('reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::controller(ReportsController::class)->prefix('reports')->name('reports.')->group(function () {
+        Route::get('', 'index')->name('index');
+        Route::get('top-places', 'topPlaces')->name('top-places');
+        Route::get('top-cities', 'topCities')->name('top-cities');
+        Route::get('active-users', 'activeUsers')->name('active-users');
+        Route::get('daily-check-ins', 'dailyCheckIns')->name('daily-check-ins');
+        Route::get('posts', 'posts')->name('posts');
+    });
 
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');

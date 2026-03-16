@@ -1,5 +1,5 @@
 /*
-Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
+Theme: Farra - Responsive Bootstrap 5 Admin Dashboard
 Version: 1.0
 Author: Techzaa
 File: countdown js

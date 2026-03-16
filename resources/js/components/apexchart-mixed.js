@@ -1,5 +1,5 @@
 /**
- * Theme: Wander - Responsive Bootstrap 5 Admin Dashboard
+ * Theme: Farra - Responsive Bootstrap 5 Admin Dashboard
  * Author: Techzaa
  * Module/App: Apex Mixed Charts
  */

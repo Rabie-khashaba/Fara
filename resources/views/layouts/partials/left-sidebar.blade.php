@@ -2,13 +2,13 @@
     <!-- Sidebar Logo -->
     <div class="logo-box">
         <a href="{{ route('any', 'home') }}" class="logo-dark">
-            <img src="/images/Logo-white.svg" class="logo-sm" alt="Wander logo small"/>
-            <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
+            <img src="/images/Logo-white.svg" class="logo-sm" alt="Farra logo small"/>
+            <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Farra</span>
         </a>
 
         <a href="{{ route('any', 'home') }}" class="logo-light">
-            <img src="/images/Logo-black.svg" class="logo-sm" alt="Wander logo small"/>
-            <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
+            <img src="/images/Logo-black.svg" class="logo-sm" alt="Farra logo small"/>
+            <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Farra</span>
         </a>
     </div>
 
@@ -74,12 +74,32 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="{{ route('reports.index') }}">
+                <a class="nav-link menu-arrow" href="#sidebarReports" data-bs-toggle="collapse" role="button"
+                    aria-expanded="false" aria-controls="sidebarReports">
                     <span class="nav-icon">
-                        <i class="bx bx-bar-chart-alt-2"></i>
+                        <i class="bx bx-bar-chart-alt-2 text-primary"></i>
                     </span>
                     <span class="nav-text"> Reports </span>
                 </a>
+                <div class="collapse" id="sidebarReports">
+                    <ul class="nav sub-navbar-nav">
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('reports.top-places') }}">Top Places</a>
+                        </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('reports.top-cities') }}">Top Cities</a>
+                        </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('reports.active-users') }}">Active Users</a>
+                        </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('reports.daily-check-ins') }}">Daily Check-ins</a>
+                        </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('reports.posts') }}">Posts Report</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
 
             <li class="menu-title">Custom</li>

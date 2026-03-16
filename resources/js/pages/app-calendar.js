@@ -1,5 +1,5 @@
 /*
-Template Name: Wander - Responsive 5 Admin Dashboard
+Template Name: Farra - Responsive 5 Admin Dashboard
 Author: Techzaa
 File: schedule js
 */
@@ -74,7 +74,7 @@ class CalendarSchedule {
                className: 'bg-warning'
           },
           {
-               title: 'Meeting with Mr. Wander',
+               title: 'Meeting with Mr. Farra',
                start: new Date(Date.now() + 308000000),
                end: new Date(Date.now() + 338000000),
                className: 'bg-info'

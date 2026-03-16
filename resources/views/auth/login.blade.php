@@ -31,7 +31,7 @@
                                         class="me-1"
                                         alt="logo sm"
                                     />
-                                    <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
+                                    <span class="logo-lg text-dark fs-3 fw-bold d-inline-flex align-items-center">Farra</span>
                                 </a>
 
                                 <a
@@ -44,7 +44,7 @@
                                         class="me-1"
                                         alt="logo sm"
                                     />
-                                    <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Wander</span>
+                                    <span class="logo-lg text-white fs-3 fw-bold d-inline-flex align-items-center">Farra</span>
                                 </a>
                             </div>
                             <h2

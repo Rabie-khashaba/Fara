@@ -1,5 +1,5 @@
 /*
-Template Name: Wander - Responsive 5 Admin Dashboard
+Template Name: Farra - Responsive 5 Admin Dashboard
 Author: Techzaa
 File: profile js
 */

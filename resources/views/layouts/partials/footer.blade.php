@@ -5,7 +5,7 @@
                 <script>
                     document.write(new Date().getFullYear())
                 </script>
-                &copy; Wander. Crafted by
+                &copy; Farra. Crafted by
                 <iconify-icon
                     icon="iconamoon:heart-duotone"
                     class="fs-18 align-middle text-danger"

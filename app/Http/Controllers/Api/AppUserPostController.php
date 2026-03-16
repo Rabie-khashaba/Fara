@@ -114,15 +114,21 @@ class AppUserPostController extends Controller
         $appUser = $request->user();
         $data = $request->validated();
         $data['image'] = $this->storeImages($request->file('image'));
-        $data['is_ghost'] = false;
+        $data['is_ghost'] = $request->boolean('is_ghost', false);
 
         $post = $appUser->posts()->create($data);
 
-        $this->logActivity($appUser, 'post_created', $post, null, 'Created a new post');
+        $this->logActivity(
+            $appUser,
+            $data['is_ghost'] ? 'ghost_post_created' : 'post_created',
+            $post,
+            null,
+            $data['is_ghost'] ? 'Created a ghost post' : 'Created a new post'
+        );
 
         return response()->json([
             'status' => true,
-            'message' => 'Post created successfully',
+            'message' => $data['is_ghost'] ? 'Ghost post created successfully' : 'Post created successfully',
             'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
         ], 201);
     }
@@ -168,6 +174,10 @@ class AppUserPostController extends Controller
 
         if ($request->hasFile('image')) {
             $data['image'] = $this->storeImages($request->file('image'), $post);
+        }
+
+        if ($request->has('is_ghost')) {
+            $data['is_ghost'] = $request->boolean('is_ghost');
         }
 
         $post->update($data);

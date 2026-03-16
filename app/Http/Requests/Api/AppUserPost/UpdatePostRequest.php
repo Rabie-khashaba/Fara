@@ -11,6 +11,25 @@ class UpdatePostRequest extends ApiFormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('is_ghost')) {
+            return;
+        }
+
+        $value = $this->input('is_ghost');
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+
+            if (in_array($normalized, ['true', 'false'], true)) {
+                $this->merge([
+                    'is_ghost' => $normalized === 'true',
+                ]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -21,6 +40,7 @@ class UpdatePostRequest extends ApiFormRequest
             'location' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', 'string', 'in:draft,published,archived'],
             'published_at' => ['nullable', 'date'],
+            'is_ghost' => ['nullable', 'boolean'],
         ];
     }
 }

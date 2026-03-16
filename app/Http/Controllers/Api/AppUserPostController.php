@@ -224,6 +224,27 @@ class AppUserPostController extends Controller
         ], $repost->wasRecentlyCreated ? 201 : 200);
     }
 
+    public function destroyRepost(Request $request, int $id): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $post = AppUserPost::query()->findOrFail($id);
+
+        $repost = AppUserRepost::query()
+            ->where('app_user_id', $appUser->id)
+            ->where('app_user_post_id', $post->id)
+            ->firstOrFail();
+
+        $repost->delete();
+
+        $this->logActivity($appUser, 'unreposted_post', $post, $post->appUser, 'Removed a repost');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Repost removed successfully',
+        ]);
+    }
+
     private function logActivity(AppUser $appUser, string $type, ?AppUserPost $post, ?AppUser $subject, ?string $description): void
     {
         AppUserActivity::create([

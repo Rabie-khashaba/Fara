@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::post('posts/{id}', [AppUserPostController::class, 'update']);
     Route::delete('posts/{id}', [AppUserPostController::class, 'destroy']);
     Route::post('posts/{id}/repost', [AppUserPostController::class, 'repost']);
+    Route::delete('posts/{id}/repost', [AppUserPostController::class, 'destroyRepost']);
     Route::post('posts/{id}/share', [AppUserSharedPostController::class, 'store']);
     Route::delete('posts/{id}/share', [AppUserSharedPostController::class, 'destroy']);
 

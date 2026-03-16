@@ -92,6 +92,11 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserPostComment::class);
     }
 
+    public function commentLikes(): HasMany
+    {
+        return $this->hasMany(AppUserPostCommentLike::class);
+    }
+
     public function reposts(): HasMany
     {
         return $this->hasMany(AppUserRepost::class);

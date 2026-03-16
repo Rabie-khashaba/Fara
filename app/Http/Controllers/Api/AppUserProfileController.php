@@ -97,6 +97,7 @@ class AppUserProfileController extends Controller
                     ->latest(),
                 'comments' => fn ($query) => $query
                     ->with(['post:id,content,location,app_user_id', 'post.appUser:id,name,username'])
+                    ->withCount('likes')
                     ->latest(),
                 'likes' => fn ($query) => $query
                     ->with(['post' => fn ($postQuery) => $postQuery->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])])
@@ -118,6 +119,8 @@ class AppUserProfileController extends Controller
             'content' => $post->content,
             'image' => $post->image,
             'image_url' => $post->image_url,
+            'image_urls' => $post->image_urls,
+            'background_color' => $post->background_color,
             'location' => $post->location,
             'status' => $post->status,
             'published_at' => $post->published_at,
@@ -132,6 +135,8 @@ class AppUserProfileController extends Controller
                 'content' => $post->repostedPost->content,
                 'image' => $post->repostedPost->image,
                 'image_url' => $post->repostedPost->image_url,
+                'image_urls' => $post->repostedPost->image_urls,
+                'background_color' => $post->repostedPost->background_color,
                 'location' => $post->repostedPost->location,
                 'author' => [
                     'id' => $post->repostedPost->appUser?->id,
@@ -145,6 +150,7 @@ class AppUserProfileController extends Controller
             'id' => $comment->id,
             'comment' => $comment->comment,
             'created_at' => $comment->created_at,
+            'likes_count' => $comment->likes_count,
             'post' => [
                 'id' => $comment->post?->id,
                 'content' => $comment->post?->content,
@@ -165,6 +171,8 @@ class AppUserProfileController extends Controller
                 'content' => $like->post?->content,
                 'image' => $like->post?->image,
                 'image_url' => $like->post?->image_url,
+                'image_urls' => $like->post?->image_urls,
+                'background_color' => $like->post?->background_color,
                 'location' => $like->post?->location,
                 'status' => $like->post?->status,
                 'likes_count' => $like->post?->likes_count,
@@ -183,6 +191,8 @@ class AppUserProfileController extends Controller
                 'content' => $sharedPost->post?->content,
                 'image' => $sharedPost->post?->image,
                 'image_url' => $sharedPost->post?->image_url,
+                'image_urls' => $sharedPost->post?->image_urls,
+                'background_color' => $sharedPost->post?->background_color,
                 'location' => $sharedPost->post?->location,
                 'status' => $sharedPost->post?->status,
                 'likes_count' => $sharedPost->post?->likes_count,
@@ -201,6 +211,8 @@ class AppUserProfileController extends Controller
                 'content' => $savedPost->post?->content,
                 'image' => $savedPost->post?->image,
                 'image_url' => $savedPost->post?->image_url,
+                'image_urls' => $savedPost->post?->image_urls,
+                'background_color' => $savedPost->post?->background_color,
                 'location' => $savedPost->post?->location,
                 'status' => $savedPost->post?->status,
                 'likes_count' => $savedPost->post?->likes_count,

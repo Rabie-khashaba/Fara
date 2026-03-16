@@ -20,7 +20,7 @@ class AppUserPostCommentController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $post->comments()->with('appUser')->latest()->get(),
+            'data' => $post->comments()->with('appUser')->withCount('likes')->latest()->get(),
         ]);
     }
 
@@ -51,7 +51,7 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment added successfully',
-            'data' => $comment->load('appUser'),
+            'data' => $comment->load('appUser')->loadCount('likes'),
         ], 201);
     }
 
@@ -81,7 +81,7 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment updated successfully',
-            'data' => $comment->fresh()->load('appUser'),
+            'data' => $comment->fresh()->load('appUser')->loadCount('likes'),
         ]);
     }
 

@@ -14,14 +14,17 @@ class AppUserPost extends Model
 
     protected $appends = [
         'image_url',
+        'image_urls',
     ];
 
     protected $fillable = [
         'app_user_id',
         'content',
         'image',
+        'background_color',
         'location',
         'status',
+        'is_ghost',
         'published_at',
         'is_hide',
         'reposted_post_id',
@@ -30,7 +33,9 @@ class AppUserPost extends Model
     protected function casts(): array
     {
         return [
+            'image' => 'array',
             'published_at' => 'datetime',
+            'is_ghost' => 'boolean',
             'is_hide' => 'boolean',
         ];
     }
@@ -82,7 +87,18 @@ class AppUserPost extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        return $this->toPublicUrl($this->image);
+        return collect($this->getImageUrlsAttribute())->first();
+    }
+
+    public function getImageUrlsAttribute(): array
+    {
+        $urls = $this->toPublicUrl($this->image);
+
+        if (empty($urls)) {
+            return [];
+        }
+
+        return is_array($urls) ? array_values($urls) : [$urls];
     }
 
     private function toPublicUrl($value)
@@ -108,5 +124,18 @@ class AppUserPost extends Model
         }
 
         return rtrim(config('app.url'), '/') . '/storage/app/public/' . $path;
+    }
+
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+
+        if ($this->is_ghost) {
+            $data['app_user_id'] = null;
+            $data['app_user'] = null;
+            $data['ghost_author_name'] = 'Ghost User';
+        }
+
+        return $data;
     }
 }

@@ -113,7 +113,8 @@ class AppUserPostController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
         $data = $request->validated();
-        $data['image'] = $this->storeImage($request->file('image'));
+        $data['image'] = $this->storeImages($request->file('image'));
+        $data['is_ghost'] = false;
 
         $post = $appUser->posts()->create($data);
 
@@ -122,6 +123,25 @@ class AppUserPostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Post created successfully',
+            'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
+        ], 201);
+    }
+
+    public function storeGhost(StorePostRequest $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $data = $request->validated();
+        $data['image'] = $this->storeImages($request->file('image'));
+        $data['is_ghost'] = true;
+
+        $post = $appUser->posts()->create($data);
+
+        $this->logActivity($appUser, 'ghost_post_created', $post, null, 'Created a ghost post');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ghost post created successfully',
             'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
         ], 201);
     }
@@ -147,7 +167,7 @@ class AppUserPostController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('image')) {
-            $data['image'] = $this->storeImage($request->file('image'), $post);
+            $data['image'] = $this->storeImages($request->file('image'), $post);
         }
 
         $post->update($data);
@@ -170,6 +190,7 @@ class AppUserPostController extends Controller
         abort_if($post->app_user_id !== $appUser->id, 403, 'Unauthorized');
 
         $this->logActivity($appUser, 'post_deleted', $post, null, 'Deleted a post');
+        $this->deletePostImages($post->image);
         $post->delete();
 
         return response()->json([
@@ -218,16 +239,31 @@ class AppUserPostController extends Controller
         ]);
     }
 
-    private function storeImage(?UploadedFile $image, ?AppUserPost $post = null): ?string
+    private function storeImages(array|UploadedFile|null $images, ?AppUserPost $post = null): ?array
     {
-        if (! $image) {
+        if (! $images) {
             return $post?->image;
         }
 
-        if ($post?->image) {
-            Storage::disk('public')->delete($post->image);
+        $this->deletePostImages($post?->image);
+
+        $files = $images instanceof UploadedFile ? [$images] : $images;
+
+        return collect($files)
+            ->filter(fn ($file) => $file instanceof UploadedFile)
+            ->map(fn (UploadedFile $file) => $file->store('app-user-posts', 'public'))
+            ->values()
+            ->all();
+    }
+
+    private function deletePostImages(array|string|null $images): void
+    {
+        if (empty($images)) {
+            return;
         }
 
-        return $image->store('app-user-posts', 'public');
+        $paths = is_array($images) ? $images : [$images];
+
+        Storage::disk('public')->delete(array_filter($paths));
     }
 }

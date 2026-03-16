@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AppUserChatController;
 use App\Http\Controllers\Api\AppUserCheckInController;
 use App\Http\Controllers\Api\AppUserFollowController;
 use App\Http\Controllers\Api\AppUserPostCommentController;
+use App\Http\Controllers\Api\AppUserPostCommentLikeController;
 use App\Http\Controllers\Api\AppUserPostController;
 use App\Http\Controllers\Api\AppUserPostLikeController;
 use App\Http\Controllers\Api\AppUserProfileController;
@@ -64,6 +65,7 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
 
     Route::get('following-posts', [AppUserPostController::class, 'followingPosts']);
     Route::post('posts', [AppUserPostController::class, 'store']);
+    Route::post('posts/ghost', [AppUserPostController::class, 'storeGhost']);
     Route::get('posts/{id}', [AppUserPostController::class, 'show']);
     Route::post('posts/{id}', [AppUserPostController::class, 'update']);
     Route::delete('posts/{id}', [AppUserPostController::class, 'destroy']);
@@ -79,6 +81,8 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
 
     Route::get('posts/{id}/comments', [AppUserPostCommentController::class, 'index']);
     Route::post('posts/{id}/comments', [AppUserPostCommentController::class, 'store']);
+    Route::post('comments/{commentId}/likes', [AppUserPostCommentLikeController::class, 'store']);
+    Route::delete('comments/{commentId}/likes', [AppUserPostCommentLikeController::class, 'destroy']);
     Route::patch('comments/{commentId}', [AppUserPostCommentController::class, 'update']);
     Route::delete('comments/{commentId}', [AppUserPostCommentController::class, 'destroy']);
 

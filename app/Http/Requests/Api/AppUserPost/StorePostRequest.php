@@ -15,7 +15,9 @@ class StorePostRequest extends ApiFormRequest
     {
         return [
             'content' => ['nullable', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image' => ['nullable', 'array', 'max:10'],
+            'image.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'background_color' => ['nullable', 'string', 'max:20', 'regex:/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/'],
             'location' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'in:draft,published,archived'],
             'published_at' => ['nullable', 'date'],

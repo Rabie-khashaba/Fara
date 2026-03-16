@@ -441,9 +441,15 @@
                                                 @endif
                                             </div>
 
-                                            @if ($post->image_url)
+                                            @if (! empty($post->image_urls))
                                                 <div class="mb-3">
-                                                    <img src="{{ $post->image_url }}" alt="post image" class="img-fluid rounded-3 w-100" style="height: 180px; object-fit: cover;" />
+                                                    <div class="row g-2">
+                                                        @foreach ($post->image_urls as $imageUrl)
+                                                            <div class="col-{{ count($post->image_urls) > 1 ? '6' : '12' }}">
+                                                                <img src="{{ $imageUrl }}" alt="post image" class="img-fluid rounded-3 w-100" style="height: 180px; object-fit: cover;" />
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
                                                 </div>
                                             @endif
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppUser;
+use App\Models\AppUserDeviceToken;
 use App\Models\AppUserNotification;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +50,7 @@ class NotificationController extends Controller
         return view('notifications.create', [
             'appUsers' => AppUser::query()
                 ->orderBy('name')
-                ->get(['id', 'name', 'phone', 'fcm_token']),
+                ->get(['id', 'name', 'phone']),
         ]);
     }
 
@@ -63,11 +64,10 @@ class NotificationController extends Controller
 
         $sender = AppUser::query()->findOrFail($validated['sender_app_user_id']);
 
-        $recipients = AppUser::query()
-            ->whereKeyNot($sender->id)
-            ->whereNotNull('fcm_token')
-            ->where('fcm_token', '!=', '')
-            ->get(['id', 'fcm_token']);
+        $recipients = AppUserDeviceToken::query()
+            ->whereHas('appUser', fn ($query) => $query->whereKeyNot($sender->id))
+            ->with('appUser:id')
+            ->get(['app_user_id', 'token']);
 
         if ($recipients->isEmpty()) {
             return redirect()
@@ -77,7 +77,7 @@ class NotificationController extends Controller
         }
 
         $result = $this->firebaseNotificationService->sendToTokens(
-            $recipients->pluck('fcm_token')->all(),
+            $recipients->pluck('token')->all(),
             $validated['title'],
             $validated['body'],
             []
@@ -88,14 +88,14 @@ class NotificationController extends Controller
                 continue;
             }
 
-            $recipient = $recipients->firstWhere('fcm_token', $notificationResult['token']);
+            $recipient = $recipients->firstWhere('token', $notificationResult['token']);
             if (! $recipient) {
                 continue;
             }
 
             AppUserNotification::query()->create([
                 'sender_app_user_id' => $sender->id,
-                'recipient_app_user_id' => $recipient->id,
+                'recipient_app_user_id' => $recipient->app_user_id,
                 'target_fcm_token' => (string) $notificationResult['token'],
                 'title' => $validated['title'],
                 'body' => $validated['body'],

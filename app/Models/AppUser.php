@@ -56,6 +56,11 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserSocialAccount::class);
     }
 
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(AppUserDeviceToken::class);
+    }
+
     public function packages(): BelongsToMany
     {
         return $this->belongsToMany(Package::class, 'app_user_package')

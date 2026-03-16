@@ -20,6 +20,8 @@ class RegisterRequest extends ApiFormRequest
             'phone' => ['required', 'string', 'max:30', Rule::unique('app_users', 'phone')],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'fcm_token' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'platform' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'device_name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 }

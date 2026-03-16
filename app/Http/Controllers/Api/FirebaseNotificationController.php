@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppUser;
+use App\Models\AppUserDeviceToken;
 use App\Models\AppUserNotification;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\JsonResponse;
@@ -93,6 +94,8 @@ class FirebaseNotificationController extends Controller
     {
         $validated = $request->validate([
             'fcm_token' => ['required', 'string', 'max:5000'],
+            'platform' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'device_name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         $user = $request->user();
@@ -103,16 +106,23 @@ class FirebaseNotificationController extends Controller
             ], 401);
         }
 
-        $user->update([
-            'fcm_token' => $validated['fcm_token'],
-        ]);
+        AppUserDeviceToken::query()->updateOrCreate(
+            ['token_hash' => AppUserDeviceToken::makeTokenHash($validated['fcm_token'])],
+            [
+                'app_user_id' => $user->id,
+                'token' => $validated['fcm_token'],
+                'platform' => $validated['platform'] ?? null,
+                'device_name' => $validated['device_name'] ?? null,
+                'last_used_at' => now(),
+            ]
+        );
 
         return response()->json([
             'status' => true,
             'message' => 'FCM token updated successfully.',
             'data' => [
                 'user_id' => $user->id,
-                'has_fcm_token' => !empty($user->fcm_token),
+                'has_fcm_token' => $user->deviceTokens()->exists(),
             ],
         ]);
     }
@@ -184,7 +194,11 @@ class FirebaseNotificationController extends Controller
         string $body,
         array $data = []
     ): void {
-        $recipient = AppUser::query()->where('fcm_token', $token)->first();
+        $recipient = AppUserDeviceToken::query()
+            ->with('appUser')
+            ->where('token_hash', AppUserDeviceToken::makeTokenHash($token))
+            ->first()
+            ?->appUser;
 
         AppUserNotification::query()->create([
             'sender_app_user_id' => $sender?->id,

@@ -57,7 +57,9 @@ class AppUserAuthController extends Controller
             return $this->authService->loginByPhone(
                 $data['phone'],
                 $data['password'],
-                $data['fcm_token'] ?? null
+                $data['fcm_token'] ?? null,
+                $data['platform'] ?? null,
+                $data['device_name'] ?? null
             );
         });
     }

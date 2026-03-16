@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\SocialAuthProvider;
 use App\Models\AppUser;
+use App\Models\AppUserDeviceToken;
 use App\Models\AppUserSocialAccount;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -62,6 +63,8 @@ class AppUserAuthService
             'phone' => $data['phone'],
             'password' => isset($data['password']) ? Hash::make($data['password']) : null,
             'fcm_token' => $data['fcm_token'] ?? null,
+            'platform' => $data['platform'] ?? null,
+            'device_name' => $data['device_name'] ?? null,
             'provider' => $data['provider'] ?? null,
             'provider_id' => $data['provider_id'] ?? null,
             'otp' => $otp,
@@ -101,13 +104,21 @@ class AppUserAuthService
             'username' => $pendingRegistration['username'],
             'phone' => $pendingRegistration['phone'],
             'password' => $pendingRegistration['password'] ?: Str::password(32),
-            'fcm_token' => $pendingRegistration['fcm_token'] ?? null,
             'provider' => $pendingRegistration['provider'],
             'provider_id' => $pendingRegistration['provider_id'],
             'otp' => null,
             'expired_otp_at' => null,
             'is_active' => true,
         ]);
+
+        if (! empty($pendingRegistration['fcm_token'])) {
+            $this->storeDeviceToken(
+                $appUser,
+                (string) $pendingRegistration['fcm_token'],
+                $pendingRegistration['platform'] ?? null,
+                $pendingRegistration['device_name'] ?? null
+            );
+        }
 
         $token = $appUser->createToken('app-user-token')->plainTextToken;
 
@@ -188,7 +199,13 @@ class AppUserAuthService
         ];
     }
 
-    public function loginByPhone(string $phone, string $password, ?string $fcmToken = null): array
+    public function loginByPhone(
+        string $phone,
+        string $password,
+        ?string $fcmToken = null,
+        ?string $platform = null,
+        ?string $deviceName = null
+    ): array
     {
         $appUser = $this->findAppUserByPhone($this->normalizePhone($phone));
 
@@ -205,9 +222,7 @@ class AppUserAuthService
         }
 
         if ($fcmToken !== null) {
-            $appUser->forceFill([
-                'fcm_token' => $fcmToken,
-            ])->save();
+            $this->storeDeviceToken($appUser, $fcmToken, $platform, $deviceName);
         }
 
         $token = $appUser->createToken('app-user-token')->plainTextToken;
@@ -442,6 +457,24 @@ class AppUserAuthService
             'provider' => $appUser->provider,
             'is_active' => $appUser->is_active,
         ];
+    }
+
+    private function storeDeviceToken(
+        AppUser $appUser,
+        string $token,
+        ?string $platform = null,
+        ?string $deviceName = null
+    ): void {
+        AppUserDeviceToken::query()->updateOrCreate(
+            ['token_hash' => AppUserDeviceToken::makeTokenHash($token)],
+            [
+                'app_user_id' => $appUser->id,
+                'token' => $token,
+                'platform' => $platform,
+                'device_name' => $deviceName,
+                'last_used_at' => now(),
+            ]
+        );
     }
 
     protected function resolveProviderUser(string $provider, string $token): ProviderUser

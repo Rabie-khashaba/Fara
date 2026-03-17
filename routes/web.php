@@ -43,6 +43,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
+    Route::post('notifications/send-all', [NotificationController::class, 'storeAll'])->name('notifications.store-all');
 
     Route::resource('settings/roles', SettingRoleController::class)->names('settings.roles');
 

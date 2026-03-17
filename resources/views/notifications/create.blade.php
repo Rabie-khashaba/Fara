@@ -7,8 +7,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h4 class="mb-1">Send Notification To All Users</h4>
-                        <p class="text-muted mb-0">Choose the app user this notification is about, then send it to all users who have an FCM token.</p>
+                        <h4 class="mb-1">Send Notification To User</h4>
+                        <p class="text-muted mb-0">Choose the sender and recipient, then the dashboard will fetch the recipient FCM tokens from the device tokens table.</p>
                     </div>
                     <a href="{{ route('notifications.index') }}" class="btn btn-light">Back</a>
                 </div>
@@ -27,9 +27,9 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label for="sender_app_user_id" class="form-label">User</label>
+                        <label for="sender_app_user_id" class="form-label">Sender</label>
                         <select id="sender_app_user_id" name="sender_app_user_id" class="form-select @error('sender_app_user_id') is-invalid @enderror" required>
-                            <option value="">Select app user</option>
+                            <option value="">Select sender</option>
                             @foreach ($appUsers as $appUser)
                                 <option value="{{ $appUser->id }}" @selected((string) old('sender_app_user_id') === (string) $appUser->id)>
                                     {{ $appUser->name }} - {{ $appUser->phone }}
@@ -37,6 +37,21 @@
                             @endforeach
                         </select>
                         @error('sender_app_user_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="recipient_app_user_id" class="form-label">Recipient</label>
+                        <select id="recipient_app_user_id" name="recipient_app_user_id" class="form-select @error('recipient_app_user_id') is-invalid @enderror">
+                            <option value="">Select recipient</option>
+                            @foreach ($appUsers as $appUser)
+                                <option value="{{ $appUser->id }}" @selected((string) old('recipient_app_user_id') === (string) $appUser->id)>
+                                    {{ $appUser->name }} - {{ $appUser->phone }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('recipient_app_user_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -57,7 +72,10 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-danger">Send To All Users</button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-danger">Send Notification</button>
+                        <button type="submit" class="btn btn-outline-danger" formaction="{{ route('notifications.store-all') }}">Send To All Users With FCM Token</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -68,9 +86,10 @@
             <div class="card-body">
                 <h5 class="mb-3">Notes</h5>
                 <ul class="text-muted mb-0 ps-3">
-                    <li>The selected app user will be saved as the sender.</li>
-                    <li>The form includes only user, title, and body.</li>
-                    <li>The notification will be sent to all app users with a non-empty FCM token.</li>
+                    <li>The selected sender will be saved as the sender.</li>
+                    <li>The selected recipient will receive the single-user notification.</li>
+                    <li>The send-all button targets every user that has a saved FCM token.</li>
+                    <li>FCM tokens are loaded from the <code>app_user_device_tokens</code> table and the legacy <code>app_users.fcm_token</code> column.</li>
                 </ul>
             </div>
         </div>

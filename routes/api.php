@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AppUserActivityController;
 use App\Http\Controllers\Api\AppUserAuthController;
 use App\Http\Controllers\Api\AppUserChatController;
 use App\Http\Controllers\Api\AppUserCheckInController;
+use App\Http\Controllers\Api\AppUserDirectoryController;
 use App\Http\Controllers\Api\AppUserFollowController;
 use App\Http\Controllers\Api\AppUserPostCommentController;
 use App\Http\Controllers\Api\AppUserPostCommentLikeController;
@@ -43,6 +44,7 @@ Route::middleware('auth:sanctum')->prefix('app-user/auth')->group(function (): v
 });
 
 Route::get('app-user/profile/{appUserId}', [AppUserProfileController::class, 'show']);
+Route::get('app-user/users', [AppUserDirectoryController::class, 'index']);
 Route::get('app-user/followers/{appUserId}', [AppUserFollowController::class, 'followers']);
 Route::get('app-user/following/{appUserId}', [AppUserFollowController::class, 'followingList']);
 Route::get('app-user/posts/all', [AppUserPostController::class, 'allPosts']);

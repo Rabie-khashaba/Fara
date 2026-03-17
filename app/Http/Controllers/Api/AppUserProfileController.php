@@ -92,6 +92,7 @@ class AppUserProfileController extends Controller
             ->with([
                 'posts' => fn ($query) => $query
                     ->visible()
+                    ->where('is_ghost', false)
                     ->with(['repostedPost.appUser:id,name,username'])
                     ->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])
                     ->latest(),
@@ -117,6 +118,7 @@ class AppUserProfileController extends Controller
         $posts = $appUser->posts->map(fn ($post) => [
             'id' => $post->id,
             'content' => $post->content,
+            'is_ghost' => (bool) $post->is_ghost,
             'image' => $post->image,
             'image_url' => $post->image_url,
             'image_urls' => $post->image_urls,

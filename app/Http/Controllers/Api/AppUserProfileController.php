@@ -92,7 +92,7 @@ class AppUserProfileController extends Controller
             ->with([
                 'posts' => fn ($query) => $query
                     ->visible()
-                    ->where('is_ghost', false)
+                    ->when(! $isMe, fn ($postsQuery) => $postsQuery->where('is_ghost', false))
                     ->with(['repostedPost.appUser:id,name,username'])
                     ->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])
                     ->latest(),

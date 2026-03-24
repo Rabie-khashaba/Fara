@@ -12,38 +12,50 @@ use App\Models\AppUserRepost;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class AppUserPostController extends Controller
 {
     public function allPosts(Request $request): JsonResponse
-    {
-        /** @var AppUser|null $appUser */
-        $appUser = $request->user('sanctum');
+{
+    $appUser = $request->user('sanctum');
 
-        $followingIds = $appUser?->following()
-            ->pluck('following_app_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all() ?? [];
+    $followingIds = $appUser
+        ? Cache::remember(
+            "user:{$appUser->id}:following",
+            now()->addMinutes(5),
+            fn () => $appUser->following()
+                ->pluck('following_app_user_id')
+                ->map(fn ($id) => (int) $id)
+                ->all()
+        )
+        : [];
 
-        $posts = AppUserPost::query()
-            ->visible()
-            ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
-            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
-            ->latest()
-            ->get()
-            ->map(function (AppUserPost $post) use ($followingIds) {
-                $post->is_following = in_array((int) $post->app_user_id, $followingIds, true);
+    $followingLookup = array_fill_keys($followingIds, true);
 
-                return $post;
-            });
+    $posts = AppUserPost::query()
+        ->visible()
+        ->with(['appUser:id,name,username'])
+        ->withCount(['likes', 'comments'])
+        ->latest()
+        ->cursorPaginate(10);
 
-        return response()->json([
-            'status' => true,
-            'data' => $posts,
-        ]);
-    }
+    $posts->through(function ($post) use ($followingLookup) {
+        $post->is_following = isset($followingLookup[(int) $post->app_user_id]);
+        return $post;
+    });
 
+    return response()->json([
+        'status' => true,
+        'data' => $posts,
+        'next_cursor' => optional($posts->nextCursor())->encode(),
+    ]);
+}
     public function myPosts(Request $request): JsonResponse
     {
         /** @var AppUser $appUser */
@@ -282,9 +294,28 @@ class AppUserPostController extends Controller
 
         return collect($files)
             ->filter(fn ($file) => $file instanceof UploadedFile)
-            ->map(fn (UploadedFile $file) => $file->store('app-user-posts', 'public'))
+            ->map(fn (UploadedFile $file) => $this->storeImageAsWebp($file))
             ->values()
             ->all();
+    }
+
+    private function storeImageAsWebp(UploadedFile $file): string
+    {
+        try {
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($file->getRealPath());
+            $image = $image->scaleDown(width: 1600);
+            $encoded = $image->toWebp(65);
+            $path = 'app-user-posts/' . Str::uuid() . '.webp';
+
+            Storage::disk('public')->put($path, (string) $encoded);
+
+            return $path;
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                'image' => ['The uploaded image could not be converted to WebP.'],
+            ]);
+        }
     }
 
     private function deletePostImages(array|string|null $images): void

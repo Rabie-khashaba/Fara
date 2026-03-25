@@ -14,7 +14,9 @@ class StartDirectConversationRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'recipient_app_user_id' => ['required', 'integer', 'exists:app_users,id', 'different:auth_user_id'],
+            'recipient_app_user_id' => ['required', 'integer', 'exists:app_users,id'],
+            'body' => ['nullable', 'string', 'max:5000'],
+            'type' => ['nullable', 'string', 'max:50'],
         ];
     }
 

@@ -67,6 +67,7 @@ class AppUserChatController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
         $recipientId = (int) $request->validated()['recipient_app_user_id'];
+        $isSelfConversation = $recipientId === (int) $appUser->id;
 
         $existingConversation = $this->findDirectConversation($appUser->id, $recipientId);
 
@@ -78,23 +79,28 @@ class AppUserChatController extends Controller
             ]);
         }
 
-        $conversation = DB::transaction(function () use ($appUser, $recipientId) {
+        $conversation = DB::transaction(function () use ($appUser, $recipientId, $isSelfConversation) {
             $conversation = AppUserConversation::query()->create([
                 'type' => 'direct',
                 'created_by_app_user_id' => $appUser->id,
             ]);
 
-            $conversation->participants()->createMany([
+            $participants = [
                 [
                     'app_user_id' => $appUser->id,
                     'last_read_at' => now(),
                     'joined_at' => now(),
                 ],
-                [
+            ];
+
+            if (! $isSelfConversation) {
+                $participants[] = [
                     'app_user_id' => $recipientId,
                     'joined_at' => now(),
-                ],
-            ]);
+                ];
+            }
+
+            $conversation->participants()->createMany($participants);
 
             return $conversation->fresh([
                 'participants.appUser:id,name,username,profile_image',
@@ -126,21 +132,6 @@ class AppUserChatController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
         $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
-        $latestMessageAt = $conversation->latestMessage?->created_at;
-
-        if ($latestMessageAt) {
-            AppUserConversationParticipant::query()
-                ->where('app_user_conversation_id', $conversation->id)
-                ->update([
-                    'last_read_at' => $latestMessageAt,
-                ]);
-
-            $this->broadcastConversationUpdates($conversation->id);
-            $conversation->load([
-                'participants.appUser:id,name,username,profile_image',
-                'latestMessage.sender:id,name,username,profile_image',
-            ]);
-        }
 
         $messages = $conversation->messages()
             ->with('sender:id,name,username,profile_image')
@@ -230,15 +221,23 @@ class AppUserChatController extends Controller
 
     private function findDirectConversation(int $firstUserId, int $secondUserId): ?AppUserConversation
     {
-        return AppUserConversation::query()
+        $query = AppUserConversation::query()
             ->where('type', 'direct')
             ->whereHas('participants', fn ($query) => $query->where('app_user_id', $firstUserId))
-            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $secondUserId))
-            ->has('participants', '=', 2)
             ->with([
                 'participants.appUser:id,name,username,profile_image',
                 'latestMessage.sender:id,name,username,profile_image',
-            ])
+            ]);
+
+        if ($firstUserId === $secondUserId) {
+            return $query
+                ->has('participants', '=', 1)
+                ->first();
+        }
+
+        return $query
+            ->whereHas('participants', fn ($query) => $query->where('app_user_id', $secondUserId))
+            ->has('participants', '=', 2)
             ->first();
     }
 
@@ -248,7 +247,8 @@ class AppUserChatController extends Controller
             ->firstWhere('app_user_id', $authUser->id);
 
         $otherParticipant = $conversation->participants
-            ->firstWhere('app_user_id', '!=', $authUser->id);
+            ->firstWhere('app_user_id', '!=', $authUser->id)
+            ?? $currentParticipant;
 
         return [
             'id' => $conversation->id,

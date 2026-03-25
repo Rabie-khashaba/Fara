@@ -6,16 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPostComment;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppUserPostCommentLikeController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function store(Request $request, int $commentId): JsonResponse
     {
         /** @var AppUser $appUser */
         $appUser = $request->user();
-        $comment = AppUserPostComment::query()->with('post.appUser')->findOrFail($commentId);
+        $comment = AppUserPostComment::query()->with(['appUser', 'post.appUser'])->findOrFail($commentId);
 
         $like = $comment->likes()->firstOrCreate([
             'app_user_id' => $appUser->id,
@@ -34,6 +40,21 @@ class AppUserPostCommentLikeController extends Controller
                     'comment_excerpt' => $comment->comment,
                 ],
             ]);
+
+            if ($comment->appUser) {
+                $this->pushNotificationService->sendToUser(
+                    $comment->appUser,
+                    $appUser,
+                    $appUser->name,
+                    'liked your comment',
+                    [
+                        'type' => 'comment_like',
+                        'post_id' => $comment->app_user_post_id,
+                        'comment_id' => $comment->id,
+                        'sender_app_user_id' => $appUser->id,
+                    ]
+                );
+            }
         }
 
         return response()->json([

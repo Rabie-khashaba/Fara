@@ -9,6 +9,7 @@ use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
 use App\Models\AppUserRepost;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -21,6 +22,11 @@ use Intervention\Image\ImageManager;
 
 class AppUserPostController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function allPosts(Request $request): JsonResponse
 {
     $appUser = $request->user('sanctum');
@@ -233,6 +239,21 @@ class AppUserPostController extends Controller
         ]);
 
         $this->logActivity($appUser, 'reposted_post', $originalPost, $originalPost->appUser, 'Reposted a post');
+
+        if ($repost->wasRecentlyCreated && $originalPost->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $originalPost->appUser,
+                $appUser,
+                $appUser->name,
+                'reposted your post',
+                [
+                    'type' => 'post_repost',
+                    'post_id' => $originalPost->id,
+                    'repost_id' => $repost->id,
+                    'sender_app_user_id' => $appUser->id,
+                ]
+            );
+        }
 
         return response()->json([
             'status' => true,

@@ -6,11 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppUserPostLikeController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function myLikes(Request $request): JsonResponse
     {
         /** @var AppUser $appUser */
@@ -54,6 +60,20 @@ class AppUserPostLikeController extends Controller
                 'post_excerpt' => $post->content,
             ],
         ]);
+
+        if ($post->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $post->appUser,
+                $appUser,
+                $appUser->name,
+                'liked your post',
+                [
+                    'type' => 'post_like',
+                    'post_id' => $post->id,
+                    'sender_app_user_id' => $appUser->id,
+                ]
+            );
+        }
 
         return response()->json([
             'status' => true,

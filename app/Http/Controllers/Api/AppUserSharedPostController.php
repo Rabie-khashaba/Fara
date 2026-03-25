@@ -7,11 +7,17 @@ use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
 use App\Models\AppUserSharedPost;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppUserSharedPostController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function all(): JsonResponse
     {
         $sharedPosts = AppUserSharedPost::query()
@@ -73,6 +79,21 @@ class AppUserSharedPostController extends Controller
                 'post_excerpt' => $post->content,
             ],
         ]);
+
+        if ($sharedPost->wasRecentlyCreated && $post->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $post->appUser,
+                $appUser,
+                $appUser->name,
+                'shared your post',
+                [
+                    'type' => 'post_share',
+                    'post_id' => $post->id,
+                    'shared_post_id' => $sharedPost->id,
+                    'sender_app_user_id' => $appUser->id,
+                ]
+            );
+        }
 
         return response()->json([
             'status' => true,

@@ -9,11 +9,17 @@ use App\Models\AppUser;
 use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
 use App\Models\AppUserPostComment;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppUserPostCommentController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function index(int $id): JsonResponse
     {
         $post = AppUserPost::query()->visible()->findOrFail($id);
@@ -47,6 +53,21 @@ class AppUserPostCommentController extends Controller
                 'comment_excerpt' => $comment->comment,
             ],
         ]);
+
+        if ($post->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $post->appUser,
+                $appUser,
+                $appUser->name,
+                $comment->comment,
+                [
+                    'type' => 'post_comment',
+                    'post_id' => $post->id,
+                    'comment_id' => $comment->id,
+                    'sender_app_user_id' => $appUser->id,
+                ]
+            );
+        }
 
         return response()->json([
             'status' => true,

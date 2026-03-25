@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ChatMessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\AppUserChat\StartDirectConversationRequest;
 use App\Http\Requests\Api\AppUserChat\StoreMessageRequest;
@@ -125,6 +126,21 @@ class AppUserChatController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
         $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+        $latestMessageAt = $conversation->latestMessage?->created_at;
+
+        if ($latestMessageAt) {
+            AppUserConversationParticipant::query()
+                ->where('app_user_conversation_id', $conversation->id)
+                ->update([
+                    'last_read_at' => $latestMessageAt,
+                ]);
+
+            $this->broadcastConversationUpdates($conversation->id);
+            $conversation->load([
+                'participants.appUser:id,name,username,profile_image',
+                'latestMessage.sender:id,name,username,profile_image',
+            ]);
+        }
 
         $messages = $conversation->messages()
             ->with('sender:id,name,username,profile_image')
@@ -168,6 +184,8 @@ class AppUserChatController extends Controller
 
             return $message->load('sender:id,name,username,profile_image');
         });
+
+        broadcast(new ChatMessageSent($message))->toOthers();
 
         return response()->json([
             'status' => true,

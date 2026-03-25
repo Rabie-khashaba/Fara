@@ -109,8 +109,6 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::post('check-in-cities/{city}/check-in', [AppUserCheckInController::class, 'storeByCity']);
 
 
-
-
     //firebase notification
     Route::post('users/fcm-token', [FirebaseNotificationController::class, 'updateToken']);
     Route::get('notifications', [FirebaseNotificationController::class, 'myNotifications']);

@@ -10,6 +10,9 @@ use App\Models\AppUser;
 use App\Models\AppUserConversation;
 use App\Models\AppUserConversationMessage;
 use App\Models\AppUserConversationParticipant;
+use App\Models\AppUserDeviceToken;
+use App\Models\AppUserNotification;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,6 +20,11 @@ use Illuminate\Support\Facades\DB;
 
 class AppUserChatController extends Controller
 {
+    public function __construct(
+        private readonly FirebaseNotificationService $firebaseNotificationService
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         /** @var AppUser $appUser */
@@ -177,6 +185,7 @@ class AppUserChatController extends Controller
         });
 
         broadcast(new ChatMessageSent($message))->toOthers();
+        $this->sendChatMessageNotifications($conversation, $message, $appUser);
 
         return response()->json([
             'status' => true,
@@ -306,5 +315,58 @@ class AppUserChatController extends Controller
     private function formatTimeLabel(?Carbon $timestamp): ?string
     {
         return $timestamp?->format('H:i');
+    }
+
+    private function sendChatMessageNotifications(
+        AppUserConversation $conversation,
+        AppUserConversationMessage $message,
+        AppUser $sender
+    ): void {
+        $deviceTokens = AppUserDeviceToken::query()
+            ->whereIn(
+                'app_user_id',
+                AppUserConversationParticipant::query()
+                    ->where('app_user_conversation_id', $conversation->id)
+                    ->where('app_user_id', '!=', $sender->id)
+                    ->pluck('app_user_id')
+            )
+            ->get();
+
+        foreach ($deviceTokens as $deviceToken) {
+            try {
+                $payload = [
+                    'type' => 'chat_message',
+                    'conversation_id' => $conversation->id,
+                    'message_id' => $message->id,
+                    'sender_app_user_id' => $sender->id,
+                    'sender_name' => $sender->name,
+                ];
+
+                $result = $this->firebaseNotificationService->sendToToken(
+                    $deviceToken->token,
+                    $sender->name,
+                    $message->body,
+                    $payload
+                );
+
+                if (! ($result['status'] ?? false)) {
+                    continue;
+                }
+
+                AppUserNotification::query()->create([
+                    'sender_app_user_id' => $sender->id,
+                    'recipient_app_user_id' => $deviceToken->app_user_id,
+                    'target_fcm_token' => $deviceToken->token,
+                    'title' => $sender->name,
+                    'body' => $message->body,
+                    'data' => $payload,
+                    'is_read' => false,
+                    'read_at' => null,
+                    'sent_at' => now(),
+                ]);
+            } catch (\Throwable) {
+                // Ignore notification failures so sending the chat message still succeeds.
+            }
+        }
     }
 }

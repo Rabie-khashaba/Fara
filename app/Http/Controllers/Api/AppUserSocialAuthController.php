@@ -45,7 +45,7 @@ class AppUserSocialAuthController extends Controller
 
             $appRedirect = $this->appRedirectUrl($provider, $result);
 
-
+           dd(config('services.apple.redirect'));
 
             if ($appRedirect) {
                 return redirect()->away($appRedirect);

@@ -593,7 +593,7 @@ class AppUserAuthService
             'username' => $this->resolveSocialUsername($data, $providerUser, $provider, $providerId),
             'email' => $this->resolveSocialEmail($email, $provider, $providerId),
             'email_verified_at' => $email ? now() : null,
-            'phone' => $this->resolveSocialPhone($data, $provider, $providerId),
+            // 'phone' => $this->resolveSocialPhone($data, $provider, $providerId),
             'password' => Str::password(32),
             'provider' => $provider,
             'provider_id' => $providerId,

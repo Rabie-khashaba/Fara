@@ -46,7 +46,9 @@ class AppUserProfileController extends Controller
         /** @var AppUser|null $viewer */
         $viewer = Auth::guard('sanctum')->user();
 
-        return $this->profileResponse($appUserId, false, $viewer);
+        $isMe = $viewer && (int) $viewer->id === (int) $appUserId;
+
+        return $this->profileResponse($appUserId, $isMe, $viewer);
     }
 
     public function destroy(Request $request): JsonResponse

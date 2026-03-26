@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\AppUserProfile\UpdateProfileRequest;
 use App\Models\AppUser;
+use App\Models\AppUserFollow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,7 +20,7 @@ class AppUserProfileController extends Controller
         /** @var AppUser $appUser */
         $appUser = $request->user();
 
-        return $this->profileResponse($appUser->id, true);
+        return $this->profileResponse($appUser->id, true, $appUser);
     }
 
     public function update(UpdateProfileRequest $request): JsonResponse
@@ -39,9 +41,12 @@ class AppUserProfileController extends Controller
         return $this->updateProfile($request, $appUser);
     }
 
-    public function show(int $appUserId): JsonResponse
+    public function show(Request $request, int $appUserId): JsonResponse
     {
-        return $this->profileResponse($appUserId, false);
+        /** @var AppUser|null $viewer */
+        $viewer = Auth::guard('sanctum')->user();
+
+        return $this->profileResponse($appUserId, false, $viewer);
     }
 
     public function destroy(Request $request): JsonResponse
@@ -86,7 +91,7 @@ class AppUserProfileController extends Controller
         ]);
     }
 
-    private function profileResponse(int $appUserId, bool $isMe): JsonResponse
+    private function profileResponse(int $appUserId, bool $isMe, ?AppUser $viewer = null): JsonResponse
     {
         $appUser = AppUser::query()
             ->with([
@@ -114,6 +119,14 @@ class AppUserProfileController extends Controller
                 'socialAccounts:id,app_user_id,provider,provider_email,provider_avatar,created_at',
             ])
             ->findOrFail($appUserId);
+
+        $isFollowedByMe = false;
+        if ($viewer && ! $viewer->is($appUser)) {
+            $isFollowedByMe = AppUserFollow::query()
+                ->where('follower_app_user_id', $viewer->id)
+                ->where('following_app_user_id', $appUser->id)
+                ->exists();
+        }
 
         $posts = $appUser->posts->map(fn ($post) => [
             'id' => $post->id,
@@ -274,6 +287,7 @@ class AppUserProfileController extends Controller
                     'updated_at' => $appUser->updated_at,
                     'social_accounts' => $appUser->socialAccounts,
                     'is_me' => $isMe,
+                    'is_followed_by_me' => $isFollowedByMe,
                 ],
                 'posts' => $posts,
                 'comments' => $comments,

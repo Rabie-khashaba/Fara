@@ -5,11 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AppUser;
 use App\Models\AppUserActivity;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppUserFollowController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function followers(int $appUserId): JsonResponse
     {
         $targetAppUser = AppUser::query()
@@ -87,6 +93,17 @@ class AppUserFollowController extends Controller
                 'subject_name' => $targetAppUser->name,
             ],
         ]);
+
+        $this->pushNotificationService->sendToUser(
+            $targetAppUser,
+            $appUser,
+            'New follower',
+            "{$appUser->name} started following you.",
+            [
+                'type' => 'follow',
+                'sender_app_user_id' => (string) $appUser->id,
+            ]
+        );
 
         return response()->json([
             'status' => true,

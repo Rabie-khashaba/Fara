@@ -135,10 +135,11 @@ class AppUserChatController extends Controller
         ]);
     }
 
-    public function messages(Request $request, int $conversationId): JsonResponse
+    public function messages(Request $request, string $conversationId): JsonResponse
     {
         /** @var AppUser $appUser */
         $appUser = $request->user();
+        $conversationId = (int) $conversationId;
         $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
 
         $messages = $conversation->messages()
@@ -345,7 +346,7 @@ class AppUserChatController extends Controller
                 $result = $this->firebaseNotificationService->sendToToken(
                     $deviceToken->token,
                     $sender->name,
-                    $message->body,
+                    "{$sender->name} Sent Message",
                     $payload
                 );
 
@@ -358,7 +359,7 @@ class AppUserChatController extends Controller
                     'recipient_app_user_id' => $deviceToken->app_user_id,
                     'target_fcm_token' => $deviceToken->token,
                     'title' => $sender->name,
-                    'body' => $message->body,
+                    'body' => "{$sender->name} Sent Message",
                     'data' => $payload,
                     'is_read' => false,
                     'read_at' => null,

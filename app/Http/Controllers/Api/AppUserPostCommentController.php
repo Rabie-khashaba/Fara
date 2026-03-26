@@ -10,6 +10,8 @@ use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
 use App\Models\AppUserPostComment;
 use App\Services\AppUserPushNotificationService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,11 +24,19 @@ class AppUserPostCommentController extends Controller
 
     public function index(int $id): JsonResponse
     {
+        /** @var AppUser|null $appUser */
+        $appUser = request()->user();
         $post = AppUserPost::query()->visible()->findOrFail($id);
+        $comments = $this->withViewerState($post->comments(), $appUser)
+            ->with('appUser')
+            ->withCount('likes')
+            ->latest()
+            ->get()
+            ->each(fn ($comment) => $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false));
 
         return response()->json([
             'status' => true,
-            'data' => $post->comments()->with('appUser')->withCount('likes')->latest()->get(),
+            'data' => $comments,
         ]);
     }
 
@@ -72,7 +82,14 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment added successfully',
-            'data' => $comment->load('appUser')->loadCount('likes'),
+            'data' => tap(
+                $this->withViewerState(AppUserPostComment::query(), $appUser)
+                    ->whereKey($comment->id)
+                    ->with('appUser')
+                    ->withCount('likes')
+                    ->firstOrFail(),
+                fn ($freshComment) => $freshComment->liked_by_me = (bool) ($freshComment->liked_by_me ?? false)
+            ),
         ], 201);
     }
 
@@ -102,7 +119,14 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment updated successfully',
-            'data' => $comment->fresh()->load('appUser')->loadCount('likes'),
+            'data' => tap(
+                $this->withViewerState(AppUserPostComment::query(), $appUser)
+                    ->whereKey($comment->id)
+                    ->with('appUser')
+                    ->withCount('likes')
+                    ->firstOrFail(),
+                fn ($freshComment) => $freshComment->liked_by_me = (bool) ($freshComment->liked_by_me ?? false)
+            ),
         ]);
     }
 
@@ -132,6 +156,17 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment deleted successfully',
+        ]);
+    }
+
+    private function withViewerState(Builder|Relation $query, ?AppUser $appUser): Builder|Relation
+    {
+        if (! $appUser) {
+            return $query;
+        }
+
+        return $query->withExists([
+            'likes as liked_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
         ]);
     }
 }

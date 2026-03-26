@@ -10,13 +10,15 @@ use App\Models\AppUserActivity;
 use App\Models\AppUserPost;
 use App\Models\AppUserRepost;
 use App\Services\AppUserPushNotificationService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 
@@ -28,50 +30,52 @@ class AppUserPostController extends Controller
     }
 
     public function allPosts(Request $request): JsonResponse
-{
-    $appUser = $request->user('sanctum');
+    {
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user('sanctum');
 
-    $followingIds = $appUser
-        ? Cache::remember(
-            "user:{$appUser->id}:following",
-            now()->addMinutes(5),
-            fn () => $appUser->following()
-                ->pluck('following_app_user_id')
-                ->map(fn ($id) => (int) $id)
-                ->all()
-        )
-        : [];
+        $followingIds = $appUser
+            ? Cache::remember(
+                "user:{$appUser->id}:following",
+                now()->addMinutes(5),
+                fn () => $appUser->following()
+                    ->pluck('following_app_user_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all()
+            )
+            : [];
 
-    $followingLookup = array_fill_keys($followingIds, true);
+        $followingLookup = array_fill_keys($followingIds, true);
 
-    $posts = AppUserPost::query()
-        ->visible()
-        ->with(['appUser:id,name,username'])
-        ->withCount(['likes', 'comments'])
-        ->latest()
-        ->cursorPaginate(10);
+        $posts = $this->withViewerState(AppUserPost::query()->visible(), $appUser)
+            ->with(['appUser:id,name,username'])
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
+            ->latest()
+            ->cursorPaginate(10);
 
-    $posts->through(function ($post) use ($followingLookup) {
-        $post->is_following = isset($followingLookup[(int) $post->app_user_id]);
-        return $post;
-    });
+        $posts->through(function (AppUserPost $post) use ($followingLookup) {
+            $this->ensurePostViewerStateDefaults($post);
+            $post->is_following = isset($followingLookup[(int) $post->app_user_id]);
+            return $post;
+        });
 
-    return response()->json([
-        'status' => true,
-        'data' => $posts,
-        'next_cursor' => optional($posts->nextCursor())->encode(),
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'data' => $posts,
+            'next_cursor' => optional($posts->nextCursor())->encode(),
+        ]);
+    }
+
     public function myPosts(Request $request): JsonResponse
     {
         /** @var AppUser $appUser */
         $appUser = $request->user();
 
-        $posts = $appUser->posts()
-            ->visible()
-            ->withCount(['likes', 'comments', 'sharedPosts', 'savedPosts'])
+        $posts = $this->withViewerState($appUser->posts()->visible(), $appUser)
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
             ->latest()
-            ->get();
+            ->get()
+            ->each(fn (AppUserPost $post) => $this->ensurePostViewerStateDefaults($post));
 
         return response()->json([
             'status' => true,
@@ -86,13 +90,18 @@ class AppUserPostController extends Controller
 
         $posts = $appUser->reposts()
             ->with([
-                'post' => fn ($query) => $query
-                    ->visible()
+                'post' => fn ($query) => $this->withViewerState($query->visible(), $appUser)
                     ->with(['appUser:id,name,username'])
                     ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
             ])
             ->latest()
             ->get();
+
+        $posts->each(function ($repost) {
+            if ($repost->post instanceof AppUserPost) {
+                $this->ensurePostViewerStateDefaults($repost->post);
+            }
+        });
 
         return response()->json([
             'status' => true,
@@ -107,13 +116,13 @@ class AppUserPostController extends Controller
 
         $followingIds = $appUser->following()->pluck('following_app_user_id');
 
-        $posts = AppUserPost::query()
-            ->visible()
+        $posts = $this->withViewerState(AppUserPost::query()->visible(), $appUser)
             ->whereIn('app_user_id', $followingIds)
             ->with(['appUser:id,name,username', 'repostedPost.appUser:id,name,username'])
             ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
             ->latest()
-            ->get();
+            ->get()
+            ->each(fn (AppUserPost $post) => $this->ensurePostViewerStateDefaults($post));
 
         return response()->json([
             'status' => true,
@@ -144,10 +153,16 @@ class AppUserPostController extends Controller
             $data['is_ghost'] ? 'Created a ghost post' : 'Created a new post'
         );
 
+        $post = $this->withViewerState(AppUserPost::query(), $appUser)
+            ->whereKey($post->id)
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
+            ->firstOrFail();
+        $this->ensurePostViewerStateDefaults($post);
+
         return response()->json([
             'status' => true,
             'message' => $data['is_ghost'] ? 'Ghost post created successfully' : 'Post created successfully',
-            'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
+            'data' => $post,
         ], 201);
     }
 
@@ -163,20 +178,42 @@ class AppUserPostController extends Controller
 
         $this->logActivity($appUser, 'ghost_post_created', $post, null, 'Created a ghost post');
 
+        $post = $this->withViewerState(AppUserPost::query(), $appUser)
+            ->whereKey($post->id)
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
+            ->firstOrFail();
+        $this->ensurePostViewerStateDefaults($post);
+
         return response()->json([
             'status' => true,
             'message' => 'Ghost post created successfully',
-            'data' => $post->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
+            'data' => $post,
         ], 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $post = AppUserPost::query()->visible()->findOrFail($id);
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user();
+
+        $post = $this->withViewerState(AppUserPost::query()->visible(), $appUser)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $post->load([
+            'appUser',
+            'comments' => fn ($query) => $this->withCommentViewerState($query, $appUser)
+                ->with('appUser')
+                ->withCount('likes'),
+            'repostedPost.appUser',
+        ])->loadCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']);
+
+        $this->ensurePostViewerStateDefaults($post);
+        $post->comments->each(fn ($comment) => $this->ensureCommentViewerStateDefaults($comment));
 
         return response()->json([
             'status' => true,
-            'data' => $post->load(['appUser', 'comments.appUser', 'repostedPost.appUser'])->loadCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
+            'data' => $post,
         ]);
     }
 
@@ -202,10 +239,16 @@ class AppUserPostController extends Controller
 
         $this->logActivity($appUser, 'post_updated', $post, null, 'Updated a post');
 
+        $post = $this->withViewerState(AppUserPost::query(), $appUser)
+            ->whereKey($post->id)
+            ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts'])
+            ->firstOrFail();
+        $this->ensurePostViewerStateDefaults($post);
+
         return response()->json([
             'status' => true,
             'message' => 'Post updated successfully',
-            'data' => $post->fresh()->loadCount(['likes', 'comments', 'sharedPosts', 'savedPosts']),
+            'data' => $post,
         ]);
     }
 
@@ -255,15 +298,21 @@ class AppUserPostController extends Controller
             );
         }
 
+        $response = $repost->load([
+            'appUser:id,name,username',
+            'post' => fn ($query) => $this->withViewerState($query, $appUser)
+                ->with(['appUser:id,name,username'])
+                ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
+        ]);
+
+        if ($response->post instanceof AppUserPost) {
+            $this->ensurePostViewerStateDefaults($response->post);
+        }
+
         return response()->json([
             'status' => true,
             'message' => 'Post reposted successfully',
-            'data' => $repost->load([
-                'appUser:id,name,username',
-                'post' => fn ($query) => $query
-                    ->with(['appUser:id,name,username'])
-                    ->withCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']),
-            ]),
+            'data' => $response,
         ], $repost->wasRecentlyCreated ? 201 : 200);
     }
 
@@ -348,5 +397,41 @@ class AppUserPostController extends Controller
         $paths = is_array($images) ? $images : [$images];
 
         Storage::disk('public')->delete(array_filter($paths));
+    }
+
+    private function withViewerState(Builder|Relation $query, ?AppUser $appUser): Builder|Relation
+    {
+        if (! $appUser) {
+            return $query;
+        }
+
+        return $query->withExists([
+            'likes as liked_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
+            'reposts as reposted_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
+            'savedPosts as saved_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
+        ]);
+    }
+
+    private function withCommentViewerState(Builder|Relation $query, ?AppUser $appUser): Builder|Relation
+    {
+        if (! $appUser) {
+            return $query;
+        }
+
+        return $query->withExists([
+            'likes as liked_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
+        ]);
+    }
+
+    private function ensurePostViewerStateDefaults(AppUserPost $post): void
+    {
+        $post->liked_by_me = (bool) ($post->liked_by_me ?? false);
+        $post->reposted_by_me = (bool) ($post->reposted_by_me ?? false);
+        $post->saved_by_me = (bool) ($post->saved_by_me ?? false);
+    }
+
+    private function ensureCommentViewerStateDefaults($comment): void
+    {
+        $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false);
     }
 }

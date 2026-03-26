@@ -32,7 +32,6 @@ Route::prefix('app-user/auth')->group(function (): void {
     Route::get('{provider}/callback', [AppUserSocialAuthController::class, 'callback'])
         ->whereIn('provider', SocialAuthProvider::values());
 
-
     Route::post('forgot-password', [AppUserAuthController::class, 'forgotPassword']);
     Route::post('forgot-password-verify-otp', [AppUserAuthController::class, 'forgotPasswordVerifyOtp']);
     Route::post('reset-password', [AppUserAuthController::class, 'resetPassword']);

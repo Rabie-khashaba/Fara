@@ -34,10 +34,22 @@ class AppUserSocialAuthController extends Controller
         }
     }
 
-    public function callback(string $provider): JsonResponse
+    public function callback(string $provider): JsonResponse|RedirectResponse
     {
         try {
             $result = $this->authService->socialLoginByCallback($provider);
+
+            if (! empty($result['redirect_to'])) {
+                return redirect()->away($result['redirect_to']);
+            }
+
+            $appRedirect = $this->appRedirectUrl($provider, $result);
+
+
+
+            if ($appRedirect) {
+                return redirect()->away($appRedirect);
+            }
 
             if (isset($result['error'])) {
                 return response()->json([
@@ -64,5 +76,30 @@ class AppUserSocialAuthController extends Controller
                 'error' => $exception->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function appRedirectUrl(string $provider, array $result): ?string
+    {
+        if (empty($result['token']) || empty($result['user'])) {
+            return null;
+        }
+
+        $base = config("services.{$provider}.app_redirect");
+
+        if (! $base) {
+            return null;
+        }
+
+        $separator = str_contains($base, '?') ? '&' : '?';
+        $query = http_build_query([
+            'token' => $result['token'],
+            'name' => $result['user']['full_name'] ?? null,
+            'email' => $result['user']['email'] ?? null,
+        ]);
+
+        return $base . $separator . $query;
     }
 }

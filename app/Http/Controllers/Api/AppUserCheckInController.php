@@ -156,10 +156,10 @@ class AppUserCheckInController extends Controller
             'longitude' => ['required', 'numeric', 'between:-180,180'],
         ]);
 
-        $now = $this->resolveNowForCheckIn();
-        $hours = $this->resolveAvailabilityHours();
+        $now = now();
+        $hours = AppSetting::getInt('checkin_availability_hours', 24);
+        $hours = max(1, min(168, $hours));
         $since = $now->copy()->subHours($hours);
-        $radiusKm = 1;
 
         $latitude = (float) $data['latitude'];
         $longitude = (float) $data['longitude'];
@@ -167,17 +167,19 @@ class AppUserCheckInController extends Controller
         $availableUsersCount = AppUserCheckIn::query()
             ->selectRaw('count(distinct app_user_id) as aggregate')
             ->whereBetween('checked_in_at', [$since, $now])
-            ->whereRaw(
-                '(6371 * 2 * ASIN(SQRT(POWER(SIN(RADIANS(latitude - ?) / 2), 2) + COS(RADIANS(?)) * COS(RADIANS(latitude)) * POWER(SIN(RADIANS(longitude - ?) / 2), 2)))) <= ?',
-                [$latitude, $latitude, $longitude, $radiusKm]
-            )
+            ->where('latitude', $latitude)
+            ->where('longitude', $longitude)
             ->value('aggregate');
+
+        $cityId = AppUserCheckIn::query()
+            ->whereBetween('checked_in_at', [$since, $now])
+            ->where('latitude', $latitude)
+            ->where('longitude', $longitude)
+            ->value('app_user_check_in_city_id');
 
         return response()->json([
             'status' => true,
-            'now' => $now->toIso8601String(),
-            'hours' => $hours,
-            'radius_km' => $radiusKm,
+            'city_id' => $cityId ? (int) $cityId : null,
             'available_users_count' => (int) ($availableUsersCount ?? 0),
         ]);
     }

@@ -242,6 +242,7 @@ class AppUserAuthService
             if ($socialAccount) {
                 $appUser = $socialAccount->appUser;
                 $this->syncSocialAccount($socialAccount, $providerUser);
+                $this->syncAppUserProfileFromSocialData($appUser, $data, $providerUser);
 
                 return $appUser;
             }
@@ -253,6 +254,7 @@ class AppUserAuthService
             );
 
             $this->syncSocialAccount($socialAccount, $providerUser);
+            $this->syncAppUserProfileFromSocialData($appUser, $data, $providerUser);
 
             return $appUser;
         });
@@ -587,13 +589,12 @@ class AppUserAuthService
         $provider = (string) $data['provider'];
         $providerId = (string) $providerUser->getId();
         $email = $providerUser->getEmail();
-
         return AppUser::query()->create([
             'name' => $data['full_name'] ?? $providerUser->getName() ?? $providerUser->getNickname() ?? 'Social User',
             'username' => $this->resolveSocialUsername($data, $providerUser, $provider, $providerId),
             'email' => $this->resolveSocialEmail($email, $provider, $providerId),
             'email_verified_at' => $email ? now() : null,
-            // 'phone' => $this->resolveSocialPhone($data, $provider, $providerId),
+            'phone' => $this->resolveSocialPhone($data, $provider, $providerId),
             'password' => Str::password(32),
             'provider' => $provider,
             'provider_id' => $providerId,
@@ -642,21 +643,21 @@ class AppUserAuthService
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function resolveSocialPhone(array $data, string $provider, string $providerId): string
+    protected function resolveSocialPhone(array $data, string $provider, string $providerId): ?string
     {
         $phone = $this->normalizePhone((string) ($data['phone'] ?? ''));
 
-        if ($phone !== '') {
-            $existingUser = $this->findAppUserByPhone($phone);
-
-            if ($existingUser && ! $this->findByProviderIdentity($provider, $providerId)?->is($existingUser)) {
-                return $this->generatePlaceholderPhone($provider, $providerId);
-            }
-
-            return $phone;
+        if ($phone === '') {
+            return null;
         }
 
-        return $this->generatePlaceholderPhone($provider, $providerId);
+        $existingUser = $this->findAppUserByPhone($phone);
+
+        if ($existingUser && ! $this->findByProviderIdentity($provider, $providerId)?->is($existingUser)) {
+            return null;
+        }
+
+        return $phone;
     }
 
     protected function findAppUserByPhone(string $phone): ?AppUser
@@ -758,6 +759,45 @@ class AppUserAuthService
                 'email' => $providerUser->getEmail(),
                 'email_verified_at' => now(),
             ])->save();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function syncAppUserProfileFromSocialData(AppUser $appUser, array $data, ProviderUser $providerUser): void
+    {
+        $fullName = $data['full_name'] ?? null;
+        $username = $data['username'] ?? null;
+        $emailName = $providerUser->getEmail() ? Str::before((string) $providerUser->getEmail(), '@') : null;
+
+        if (! $fullName && $providerUser->getName()) {
+            $fullName = $providerUser->getName();
+        }
+
+        if (
+            $fullName
+            && (
+                $appUser->name === null
+                || $appUser->name === ''
+                || $appUser->name === 'Social User'
+                || ($emailName && $appUser->name === $emailName)
+                || ($appUser->username && $appUser->name === $appUser->username)
+            )
+        ) {
+            $appUser->forceFill([
+                'name' => $fullName,
+            ]);
+        }
+
+        if ($username && ($appUser->username === null || $appUser->username === '')) {
+            $appUser->forceFill([
+                'username' => $username,
+            ]);
+        }
+
+        if ($appUser->isDirty()) {
+            $appUser->save();
         }
     }
 

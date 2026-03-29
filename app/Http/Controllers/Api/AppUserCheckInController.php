@@ -149,6 +149,39 @@ class AppUserCheckInController extends Controller
         ]);
     }
 
+    public function availableUsersByLocation(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $now = $this->resolveNowForCheckIn();
+        $hours = $this->resolveAvailabilityHours();
+        $since = $now->copy()->subHours($hours);
+        $radiusKm = 1;
+
+        $latitude = (float) $data['latitude'];
+        $longitude = (float) $data['longitude'];
+
+        $availableUsersCount = AppUserCheckIn::query()
+            ->selectRaw('count(distinct app_user_id) as aggregate')
+            ->whereBetween('checked_in_at', [$since, $now])
+            ->whereRaw(
+                '(6371 * 2 * ASIN(SQRT(POWER(SIN(RADIANS(latitude - ?) / 2), 2) + COS(RADIANS(?)) * COS(RADIANS(latitude)) * POWER(SIN(RADIANS(longitude - ?) / 2), 2)))) <= ?',
+                [$latitude, $latitude, $longitude, $radiusKm]
+            )
+            ->value('aggregate');
+
+        return response()->json([
+            'status' => true,
+            'now' => $now->toIso8601String(),
+            'hours' => $hours,
+            'radius_km' => $radiusKm,
+            'available_users_count' => (int) ($availableUsersCount ?? 0),
+        ]);
+    }
+
     private function resolveCity(
         float $latitude,
         float $longitude,
@@ -237,6 +270,8 @@ class AppUserCheckInController extends Controller
 
         return 2 * $earthRadius * asin(min(1, sqrt($a)));
     }
+
+    // Removed city lookup for location-based availability.
 
     private function resolveNowForCheckIn(): Carbon
     {

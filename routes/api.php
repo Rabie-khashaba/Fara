@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('check-ins', [AppUserCheckInController::class, 'index']);
     Route::post('check-ins', [AppUserCheckInController::class, 'store']);
     Route::post('check-in-cities/{city}/check-in', [AppUserCheckInController::class, 'storeByCity']);
+    Route::get('check-in-cities/{city}/available-users', [AppUserCheckInController::class, 'availableUsers']);
 
 
     //firebase notification

@@ -11,6 +11,7 @@ use App\Models\AppSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class AppUserCheckInController extends Controller
 {
@@ -121,6 +122,31 @@ class AppUserCheckInController extends Controller
             'message' => 'City check-in created successfully',
             'data' => $checkIn->load('city:id,name,place_name,category,latitude,longitude'),
         ], 201);
+    }
+
+    public function availableUsers(Request $request, AppUserCheckInCity $city): JsonResponse
+    {
+        $now = $this->resolveNowForCheckIn();
+        $hours = $this->resolveAvailabilityHours();
+        $since = $now->copy()->subHours($hours);
+
+        $userIds = AppUserCheckIn::query()
+            ->select('app_user_id')
+            ->where('app_user_check_in_city_id', $city->id)
+            ->whereBetween('checked_in_at', [$since, $now])
+            ->distinct();
+
+        $users = AppUser::query()
+            ->whereIn('id', $userIds)
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'city_id' => $city->id,
+            'now' => $now->toIso8601String(),
+            'hours' => $hours,
+            'data' => $users,
+        ]);
     }
 
     private function resolveCity(

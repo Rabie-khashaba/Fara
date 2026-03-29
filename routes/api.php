@@ -29,7 +29,7 @@ Route::prefix('app-user/auth')->group(function (): void {
     Route::post('social-login', [AppUserAuthController::class, 'socialLogin']);
     Route::get('{provider}/redirect', [AppUserSocialAuthController::class, 'redirect'])
         ->whereIn('provider', SocialAuthProvider::values());
-    Route::get('{provider}/callback', [AppUserSocialAuthController::class, 'callback'])
+    Route::match(['GET', 'POST'], '{provider}/callback', [AppUserSocialAuthController::class, 'callback'])
         ->whereIn('provider', SocialAuthProvider::values());
 
     Route::post('forgot-password', [AppUserAuthController::class, 'forgotPassword']);

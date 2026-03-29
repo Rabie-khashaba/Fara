@@ -7,6 +7,8 @@ use App\Http\Requests\Api\AppUserPost\StorePostRequest;
 use App\Http\Requests\Api\AppUserPost\UpdatePostRequest;
 use App\Models\AppUser;
 use App\Models\AppUserActivity;
+use App\Models\AppUserCheckIn;
+use App\Models\AppUserCheckInCity;
 use App\Models\AppUserPost;
 use App\Models\AppUserRepost;
 use App\Services\AppUserPushNotificationService;
@@ -144,6 +146,7 @@ class AppUserPostController extends Controller
         $data['is_ghost'] = $request->boolean('is_ghost', false);
 
         $post = $appUser->posts()->create($data);
+        $this->createCheckInFromPostData($appUser, $data);
 
         $this->logActivity(
             $appUser,
@@ -175,6 +178,7 @@ class AppUserPostController extends Controller
         $data['is_ghost'] = true;
 
         $post = $appUser->posts()->create($data);
+        $this->createCheckInFromPostData($appUser, $data);
 
         $this->logActivity($appUser, 'ghost_post_created', $post, null, 'Created a ghost post');
 
@@ -433,5 +437,120 @@ class AppUserPostController extends Controller
     private function ensureCommentViewerStateDefaults($comment): void
     {
         $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false);
+    }
+
+    private function createCheckInFromPostData(AppUser $appUser, array $data): void
+    {
+        if (! isset($data['latitude'], $data['longitude'])) {
+            return;
+        }
+
+        $latitude = (float) $data['latitude'];
+        $longitude = (float) $data['longitude'];
+
+        $city = $this->resolveCityForCheckIn(
+            $latitude,
+            $longitude,
+            $data['city_name'] ?? null,
+            $data['category'] ?? 'other',
+            $data['location'] ?? null
+        );
+
+        AppUserCheckIn::query()->create([
+            'app_user_id' => $appUser->id,
+            'app_user_check_in_city_id' => $city->id,
+            'place_name' => $data['location'] ?? null,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'checked_in_at' => $data['checked_in_at'] ?? now(),
+        ]);
+    }
+
+    private function resolveCityForCheckIn(
+        float $latitude,
+        float $longitude,
+        ?string $cityName,
+        string $category = 'other',
+        ?string $placeName = null
+    ): AppUserCheckInCity {
+        $normalizedCityName = $cityName ? trim($cityName) : null;
+        $normalizedPlaceName = $placeName ? trim($placeName) : null;
+
+        if ($normalizedCityName) {
+            $cityByName = AppUserCheckInCity::query()
+                ->whereRaw('LOWER(name) = ?', [Str::lower($normalizedCityName)])
+                ->first();
+
+            if ($cityByName) {
+                $updates = [];
+
+                if (($cityByName->category === 'other' || $cityByName->category === null) && $category !== 'other') {
+                    $updates['category'] = $category;
+                }
+
+                if ($normalizedPlaceName && empty($cityByName->place_name)) {
+                    $updates['place_name'] = $normalizedPlaceName;
+                }
+
+                if ($updates) {
+                    $cityByName->update($updates);
+                    $cityByName->refresh();
+                }
+
+                return $cityByName;
+            }
+        }
+
+        $city = AppUserCheckInCity::query()
+            ->where('country_code', 'SA')
+            ->get()
+            ->first(function (AppUserCheckInCity $city) use ($latitude, $longitude) {
+                return $this->distanceKmForCheckIn($latitude, $longitude, $city->latitude, $city->longitude) <= $city->radius_km;
+            });
+
+        if ($city) {
+            $updates = [];
+
+            if (($city->category === 'other' || $city->category === null) && $category !== 'other') {
+                $updates['category'] = $category;
+            }
+
+            if ($normalizedPlaceName && empty($city->place_name)) {
+                $updates['place_name'] = $normalizedPlaceName;
+            }
+
+            if ($updates) {
+                $city->update($updates);
+                $city->refresh();
+            }
+
+            return $city;
+        }
+
+        $name = $normalizedCityName ?: sprintf('Custom City %.4f, %.4f', $latitude, $longitude);
+
+        return AppUserCheckInCity::query()->create([
+            'name' => $name,
+            'place_name' => $normalizedPlaceName,
+            'category' => $category,
+            'slug' => Str::slug($name) . '-' . Str::lower(Str::random(6)),
+            'country_code' => 'SA',
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'radius_km' => 30,
+            'is_predefined' => false,
+        ]);
+    }
+
+    private function distanceKmForCheckIn(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371;
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lngDelta = deg2rad($lng2 - $lng1);
+
+        $a = sin($latDelta / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lngDelta / 2) ** 2;
+
+        return 2 * $earthRadius * asin(min(1, sqrt($a)));
     }
 }

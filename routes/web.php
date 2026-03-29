@@ -7,6 +7,7 @@ use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\SettingPermissionController;
+use App\Http\Controllers\SettingCheckInController;
 use App\Http\Controllers\SettingRoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('notifications/send-all', [NotificationController::class, 'storeAll'])->name('notifications.store-all');
 
     Route::resource('settings/roles', SettingRoleController::class)->names('settings.roles');
+    Route::get('settings/check-ins', [SettingCheckInController::class, 'edit'])->name('settings.checkins.edit');
+    Route::put('settings/check-ins', [SettingCheckInController::class, 'update'])->name('settings.checkins.update');
 
     Route::controller(SettingPermissionController::class)->prefix('settings/permissions')->name('settings.permissions.')->group(function () {
         Route::get('', 'index')->name('index');

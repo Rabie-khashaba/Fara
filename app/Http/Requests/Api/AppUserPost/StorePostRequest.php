@@ -14,6 +14,12 @@ class StorePostRequest extends ApiFormRequest
     protected function prepareForValidation(): void
     {
         if (! $this->has('is_ghost')) {
+            if ($this->has('Place_name') && ! $this->has('place_name')) {
+                $this->merge([
+                    'place_name' => $this->input('Place_name'),
+                ]);
+            }
+
             return;
         }
 
@@ -28,6 +34,12 @@ class StorePostRequest extends ApiFormRequest
                 ]);
             }
         }
+
+        if ($this->has('Place_name') && ! $this->has('place_name')) {
+            $this->merge([
+                'place_name' => $this->input('Place_name'),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -41,6 +53,11 @@ class StorePostRequest extends ApiFormRequest
             'status' => ['nullable', 'string', 'in:draft,published,archived'],
             'published_at' => ['nullable', 'date'],
             'is_ghost' => ['nullable', 'boolean'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'city_name' => ['nullable', 'string', 'max:255'],
+            'place_name' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -124,6 +124,9 @@
                             <li class="sub-nav-item">
                                 <a class="sub-nav-link" href="{{ route('settings.permissions.index') }}">Permissions</a>
                             </li>
+                            <li class="sub-nav-item">
+                                <a class="sub-nav-link" href="{{ route('settings.checkins.edit') }}">Check-in Settings</a>
+                            </li>
                         </ul>
                     </div>
                 </li>

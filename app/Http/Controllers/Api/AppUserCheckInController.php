@@ -7,15 +7,29 @@ use App\Http\Requests\Api\AppUserCheckIn\StoreCheckInRequest;
 use App\Models\AppUser;
 use App\Models\AppUserCheckIn;
 use App\Models\AppUserCheckInCity;
+use App\Models\AppSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class AppUserCheckInController extends Controller
 {
     public function cities(): JsonResponse
     {
+        $now = $this->resolveNowForCheckIn();
+        $hours = $this->resolveAvailabilityHours();
+        $since = $now->copy()->subHours($hours);
+
         $cities = AppUserCheckInCity::query()
-            ->withCount('checkIns')
+            ->addSelect([
+                'check_ins_count' => AppUserCheckIn::query()
+                    ->selectRaw('count(distinct app_user_id)')
+                    ->whereColumn('app_user_check_ins.app_user_check_in_city_id', 'app_user_check_in_cities.id'),
+                'available_users_count' => AppUserCheckIn::query()
+                    ->selectRaw('count(distinct app_user_id)')
+                    ->whereColumn('app_user_check_ins.app_user_check_in_city_id', 'app_user_check_in_cities.id')
+                    ->whereBetween('checked_in_at', [$since, $now]),
+            ])
             ->orderByDesc('check_ins_count')
             ->orderBy('name')
             ->get([
@@ -34,6 +48,8 @@ class AppUserCheckInController extends Controller
         return response()->json([
             'status' => true,
             'data' => $cities,
+            'now' => $now->toIso8601String(),
+            'hours' => $hours,
         ]);
     }
 
@@ -194,5 +210,39 @@ class AppUserCheckInController extends Controller
             + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lngDelta / 2) ** 2;
 
         return 2 * $earthRadius * asin(min(1, sqrt($a)));
+    }
+
+    private function resolveNowForCheckIn(): Carbon
+    {
+        $nowParam = request()->query('now');
+
+        if (! empty($nowParam)) {
+            try {
+                return Carbon::parse($nowParam);
+            } catch (\Throwable) {
+                // Fall through to default now()
+            }
+        }
+
+        return now();
+    }
+
+    private function resolveAvailabilityHours(): int
+    {
+        $hoursParam = request()->query('hours');
+
+        if (is_numeric($hoursParam)) {
+            $hours = (int) $hoursParam;
+
+            if ($hours < 1) {
+                return 1;
+            }
+
+            return min($hours, 168);
+        }
+
+        $configuredHours = AppSetting::getInt('checkin_availability_hours', 24);
+
+        return max(1, min(168, $configuredHours));
     }
 }

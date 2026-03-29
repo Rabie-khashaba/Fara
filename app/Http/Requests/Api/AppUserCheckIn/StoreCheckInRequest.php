@@ -3,8 +3,6 @@
 namespace App\Http\Requests\Api\AppUserCheckIn;
 
 use App\Http\Requests\Api\ApiFormRequest;
-use Illuminate\Validation\Rule;
-
 class StoreCheckInRequest extends ApiFormRequest
 {
     public function authorize(): bool
@@ -20,7 +18,8 @@ class StoreCheckInRequest extends ApiFormRequest
             'latitude' => [$isCityCheckInRoute ? 'nullable' : 'required', 'numeric', 'between:-90,90'],
             'longitude' => [$isCityCheckInRoute ? 'nullable' : 'required', 'numeric', 'between:-180,180'],
             'city_name' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', Rule::in(['restaurant', 'cafe', 'mall', 'other'])],
+            'place_name' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
             'checked_in_at' => ['nullable', 'date'],
         ];
     }

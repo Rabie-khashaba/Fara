@@ -7,7 +7,6 @@ use App\Models\AppUserCheckInCity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PlaceController extends Controller
@@ -98,7 +97,7 @@ class PlaceController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(self::CATEGORIES)],
+            'category' => ['required', 'string', 'max:255'],
             'country_code' => ['required', 'string', 'size:2'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

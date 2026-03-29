@@ -13,6 +13,7 @@ class AppUserCheckIn extends Model
     protected $fillable = [
         'app_user_id',
         'app_user_check_in_city_id',
+        'place_name',
         'latitude',
         'longitude',
         'checked_in_at',

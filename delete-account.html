@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حذف الحساب</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .success-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #0c5460;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .success-message strong {
+            display: block;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #0c5460;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 35px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- صفحة التأكيد -->
+        <div id="confirmPage">
+            <div class="icon">⚠️</div>
+            <h1>حذف الحساب نهائياً</h1>
+            <p class="message">
+                هل أنت متأكد من رغبتك في حذف حسابك؟ سيتم إلغاء تفعيل حسابك وحذف جميع بياناتك.
+            </p>
+            <div class="warning">
+                ⚠️ تحذير: لن تتمكن من استرجاع بياناتك بعد مرور 30 يوماً من الحذف
+            </div>
+            <div class="buttons">
+                <button class="btn-delete" onclick="deleteAccount()">حذف الحساب</button>
+                <button class="btn-cancel" onclick="cancelDelete()">إلغاء</button>
+            </div>
+        </div>
+
+        <!-- صفحة النجاح -->
+        <div id="successPage" class="hidden">
+            <div class="icon success-icon">✓</div>
+            <h1>تم حذف حسابك بنجاح</h1>
+            <div class="success-message">
+                <strong>يمكنك استرجاع حسابك!</strong>
+                لديك 30 يوماً لاسترجاع حسابك عن طريق تسجيل الدخول فقط. بعد انتهاء هذه المدة، سيتم حذف جميع بياناتك بشكل نهائي ولن يمكن استرجاعها.
+            </div>
+            <button class="btn-home" onclick="goHome()">العودة للصفحة الرئيسية</button>
+        </div>
+    </div>
+
+    <script>
+        function deleteAccount() {
+            // إخفاء صفحة التأكيد
+            document.getElementById('confirmPage').classList.add('hidden');
+            
+            // إظهار صفحة النجاح
+            document.getElementById('successPage').classList.remove('hidden');
+            
+            // هنا يمكن إضافة استدعاء API لحذف الحساب فعلياً
+            console.log('تم حذف الحساب');
+        }
+
+        function cancelDelete() {
+            // يمكن إعادة التوجيه للصفحة الرئيسية أو صفحة الملف الشخصي
+            alert('تم إلغاء عملية الحذف');
+            // window.location.href = 'index.html'; // غير المسار حسب احتياجك
+        }
+
+        function goHome() {
+            // إعادة التوجيه للصفحة الرئيسية
+            alert('سيتم إعادة توجيهك للصفحة الرئيسية');
+            // window.location.href = 'index.html'; // غير المسار حسب احتياجك
+        }
+    </script>
+</body>
+</html>

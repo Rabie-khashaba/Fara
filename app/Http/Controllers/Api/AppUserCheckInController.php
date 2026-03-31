@@ -37,7 +37,6 @@ class AppUserCheckInController extends Controller
                 'id',
                 'name',
                 'place_name',
-                'category',
                 'slug',
                 'country_code',
                 'latitude',
@@ -57,7 +56,7 @@ class AppUserCheckInController extends Controller
     public function index(): JsonResponse
     {
         $checkIns = AppUserCheckIn::query()
-            ->with(['city:id,name,category,latitude,longitude', 'appUser:id,name,username'])
+            ->with(['city:id,name,latitude,longitude', 'appUser:id,name,username'])
             ->latest('checked_in_at')
             ->get();
 
@@ -76,15 +75,14 @@ class AppUserCheckInController extends Controller
         $city = $this->resolveCity(
             (float) $data['latitude'],
             (float) $data['longitude'],
-            $data['city_name'] ?? null,
-            $data['category'] ?? 'other',
-            $data['place_name'] ?? null
+            $data['city_name'] ?? null
         );
 
         $checkIn = AppUserCheckIn::query()->create([
             'app_user_id' => $appUser->id,
             'app_user_check_in_city_id' => $city->id,
             'place_name' => $data['place_name'] ?? null,
+            'category' => $data['category'] ?? 'other',
             'latitude' => (float) $data['latitude'],
             'longitude' => (float) $data['longitude'],
             'checked_in_at' => $data['checked_in_at'] ?? now(),
@@ -93,7 +91,7 @@ class AppUserCheckInController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Check-in created successfully',
-            'data' => $checkIn->load('city:id,name,place_name,category,latitude,longitude'),
+            'data' => $checkIn->load('city:id,name,latitude,longitude'),
         ], 201);
     }
 
@@ -103,15 +101,11 @@ class AppUserCheckInController extends Controller
         $appUser = $request->user();
         $data = $request->validated();
 
-        if (($city->category === 'other' || $city->category === null) && ! empty($data['category']) && $data['category'] !== 'other') {
-            $city->update(['category' => $data['category']]);
-            $city->refresh();
-        }
-
         $checkIn = AppUserCheckIn::query()->create([
             'app_user_id' => $appUser->id,
             'app_user_check_in_city_id' => $city->id,
             'place_name' => $data['place_name'] ?? null,
+            'category' => $data['category'] ?? 'other',
             'latitude' => $city->latitude,
             'longitude' => $city->longitude,
             'checked_in_at' => $data['checked_in_at'] ?? now(),
@@ -120,11 +114,11 @@ class AppUserCheckInController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'City check-in created successfully',
-            'data' => $checkIn->load('city:id,name,place_name,category,latitude,longitude'),
+            'data' => $checkIn->load('city:id,name,latitude,longitude'),
         ], 201);
     }
 
-    public function availableUsers(Request $request, AppUserCheckInCity $city): JsonResponse
+    public function availableUsers(Request $request, AppUserCheckIn $checkIn): JsonResponse
     {
         $now = $this->resolveNowForCheckIn();
         $hours = $this->resolveAvailabilityHours();
@@ -132,7 +126,7 @@ class AppUserCheckInController extends Controller
 
         $userIds = AppUserCheckIn::query()
             ->select('app_user_id')
-            ->where('app_user_check_in_city_id', $city->id)
+            ->where('app_user_check_in_city_id', $checkIn->app_user_check_in_city_id)
             ->whereBetween('checked_in_at', [$since, $now])
             ->distinct();
 
@@ -142,7 +136,8 @@ class AppUserCheckInController extends Controller
 
         return response()->json([
             'status' => true,
-            'city_id' => $city->id,
+            'check_in_id' => $checkIn->id,
+            'city_id' => $checkIn->app_user_check_in_city_id,
             'now' => $now->toIso8601String(),
             'hours' => $hours,
             'data' => $users,
@@ -171,29 +166,68 @@ class AppUserCheckInController extends Controller
             ->where('longitude', $longitude)
             ->value('aggregate');
 
-        $cityId = AppUserCheckIn::query()
+        $checkInId = AppUserCheckIn::query()
             ->whereBetween('checked_in_at', [$since, $now])
             ->where('latitude', $latitude)
             ->where('longitude', $longitude)
-            ->value('app_user_check_in_city_id');
+            ->latest('checked_in_at')
+            ->value('id');
 
         return response()->json([
             'status' => true,
-            'city_id' => $cityId ? (int) $cityId : null,
+            'check_in_id' => $checkInId ? (int) $checkInId : null,
             'available_users_count' => (int) ($availableUsersCount ?? 0),
+        ]);
+    }
+
+    public function availableUsersByLocationDetails(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $now = $this->resolveNowForCheckIn();
+        $hours = $this->resolveAvailabilityHours();
+        $since = $now->copy()->subHours($hours);
+
+        $latitude = (float) $data['latitude'];
+        $longitude = (float) $data['longitude'];
+
+        $userIds = AppUserCheckIn::query()
+            ->select('app_user_id')
+            ->whereBetween('checked_in_at', [$since, $now])
+            ->where('latitude', $latitude)
+            ->where('longitude', $longitude)
+            ->distinct();
+
+        $users = AppUser::query()
+            ->whereIn('id', $userIds)
+            ->get();
+
+        $checkInId = AppUserCheckIn::query()
+            ->whereBetween('checked_in_at', [$since, $now])
+            ->where('latitude', $latitude)
+            ->where('longitude', $longitude)
+            ->latest('checked_in_at')
+            ->value('id');
+
+        return response()->json([
+            'status' => true,
+            'check_in_id' => $checkInId ? (int) $checkInId : null,
+            'now' => $now->toIso8601String(),
+            'hours' => $hours,
+            'data' => $users,
         ]);
     }
 
     private function resolveCity(
         float $latitude,
         float $longitude,
-        ?string $cityName,
-        string $category = 'other',
-        ?string $placeName = null
+        ?string $cityName
     ): AppUserCheckInCity
     {
         $normalizedCityName = $cityName ? trim($cityName) : null;
-        $normalizedPlaceName = $placeName ? trim($placeName) : null;
 
         if ($normalizedCityName) {
             $cityByName = AppUserCheckInCity::query()
@@ -201,21 +235,6 @@ class AppUserCheckInController extends Controller
                 ->first();
 
             if ($cityByName) {
-                $updates = [];
-
-                if (($cityByName->category === 'other' || $cityByName->category === null) && $category !== 'other') {
-                    $updates['category'] = $category;
-                }
-
-                if ($normalizedPlaceName && empty($cityByName->place_name)) {
-                    $updates['place_name'] = $normalizedPlaceName;
-                }
-
-                if ($updates) {
-                    $cityByName->update($updates);
-                    $cityByName->refresh();
-                }
-
                 return $cityByName;
             }
         }
@@ -228,21 +247,6 @@ class AppUserCheckInController extends Controller
             });
 
         if ($city) {
-            $updates = [];
-
-            if (($city->category === 'other' || $city->category === null) && $category !== 'other') {
-                $updates['category'] = $category;
-            }
-
-            if ($normalizedPlaceName && empty($city->place_name)) {
-                $updates['place_name'] = $normalizedPlaceName;
-            }
-
-            if ($updates) {
-                $city->update($updates);
-                $city->refresh();
-            }
-
             return $city;
         }
 
@@ -250,8 +254,6 @@ class AppUserCheckInController extends Controller
 
         return AppUserCheckInCity::query()->create([
             'name' => $name,
-            'place_name' => $normalizedPlaceName,
-            'category' => $category,
             'slug' => Str::slug($name) . '-' . Str::lower(Str::random(6)),
             'country_code' => 'SA',
             'latitude' => $latitude,

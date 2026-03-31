@@ -11,13 +11,6 @@ use Illuminate\View\View;
 
 class PlaceController extends Controller
 {
-    private const CATEGORIES = [
-        'restaurant',
-        'cafe',
-        'mall',
-        'other',
-    ];
-
     public function index(Request $request): View
     {
         $query = AppUserCheckInCity::query()
@@ -27,10 +20,6 @@ class PlaceController extends Controller
 
                 $builder->where('name', 'like', "%{$search}%");
             })
-            ->when(
-                in_array($request->input('category'), self::CATEGORIES, true),
-                fn ($builder) => $builder->where('category', $request->input('category'))
-            )
             ->addSelect([
                 'current_users_count' => AppUserCheckIn::query()
                     ->selectRaw('count(*)')
@@ -47,15 +36,12 @@ class PlaceController extends Controller
 
         return view('places.index', [
             'places' => $query->paginate(10)->withQueryString(),
-            'categories' => self::categoryOptions(),
         ]);
     }
 
     public function create(): View
     {
-        return view('places.create', [
-            'categories' => self::categoryOptions(),
-        ]);
+        return view('places.create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -74,7 +60,6 @@ class PlaceController extends Controller
     {
         return view('places.edit', [
             'place' => $place,
-            'categories' => self::categoryOptions(),
         ]);
     }
 
@@ -97,7 +82,6 @@ class PlaceController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'max:255'],
             'country_code' => ['required', 'string', 'size:2'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
@@ -125,13 +109,4 @@ class PlaceController extends Controller
         return $slug;
     }
 
-    private static function categoryOptions(): array
-    {
-        return [
-            'restaurant' => 'Restaurant',
-            'cafe' => 'Cafe',
-            'mall' => 'Mall',
-            'other' => 'Other',
-        ];
-    }
 }

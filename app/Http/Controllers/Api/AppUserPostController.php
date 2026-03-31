@@ -451,15 +451,14 @@ class AppUserPostController extends Controller
         $city = $this->resolveCityForCheckIn(
             $latitude,
             $longitude,
-            $data['city_name'] ?? null,
-            $data['category'] ?? 'other',
-            $data['location'] ?? null
+            $data['city_name'] ?? null
         );
 
         AppUserCheckIn::query()->create([
             'app_user_id' => $appUser->id,
             'app_user_check_in_city_id' => $city->id,
             'place_name' => $data['location'] ?? null,
+            'category' => $data['category'] ?? 'other',
             'latitude' => $latitude,
             'longitude' => $longitude,
             'checked_in_at' => $data['checked_in_at'] ?? now(),
@@ -469,12 +468,9 @@ class AppUserPostController extends Controller
     private function resolveCityForCheckIn(
         float $latitude,
         float $longitude,
-        ?string $cityName,
-        string $category = 'other',
-        ?string $placeName = null
+        ?string $cityName
     ): AppUserCheckInCity {
         $normalizedCityName = $cityName ? trim($cityName) : null;
-        $normalizedPlaceName = $placeName ? trim($placeName) : null;
 
         if ($normalizedCityName) {
             $cityByName = AppUserCheckInCity::query()
@@ -482,21 +478,6 @@ class AppUserPostController extends Controller
                 ->first();
 
             if ($cityByName) {
-                $updates = [];
-
-                if (($cityByName->category === 'other' || $cityByName->category === null) && $category !== 'other') {
-                    $updates['category'] = $category;
-                }
-
-                if ($normalizedPlaceName && empty($cityByName->place_name)) {
-                    $updates['place_name'] = $normalizedPlaceName;
-                }
-
-                if ($updates) {
-                    $cityByName->update($updates);
-                    $cityByName->refresh();
-                }
-
                 return $cityByName;
             }
         }
@@ -509,21 +490,6 @@ class AppUserPostController extends Controller
             });
 
         if ($city) {
-            $updates = [];
-
-            if (($city->category === 'other' || $city->category === null) && $category !== 'other') {
-                $updates['category'] = $category;
-            }
-
-            if ($normalizedPlaceName && empty($city->place_name)) {
-                $updates['place_name'] = $normalizedPlaceName;
-            }
-
-            if ($updates) {
-                $city->update($updates);
-                $city->refresh();
-            }
-
             return $city;
         }
 
@@ -531,8 +497,6 @@ class AppUserPostController extends Controller
 
         return AppUserCheckInCity::query()->create([
             'name' => $name,
-            'place_name' => $normalizedPlaceName,
-            'category' => $category,
             'slug' => Str::slug($name) . '-' . Str::lower(Str::random(6)),
             'country_code' => 'SA',
             'latitude' => $latitude,

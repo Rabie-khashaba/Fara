@@ -14,6 +14,7 @@ class AppUserCheckIn extends Model
         'app_user_id',
         'app_user_check_in_city_id',
         'place_name',
+        'category',
         'latitude',
         'longitude',
         'checked_in_at',

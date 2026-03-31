@@ -36,15 +36,7 @@
                         placeholder="Search by place name"
                     >
                 </div>
-                <div class="col-lg-4">
-                    <label for="category" class="form-label">Category</label>
-                    <select id="category" name="category" class="form-select">
-                        <option value="">All</option>
-                        @foreach ($categories as $value => $label)
-                            <option value="{{ $value }}" @selected(request('category') === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <div class="col-lg-4"></div>
                 <div class="col-12 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Filter</button>
                     <a href="{{ route('places.index') }}" class="btn btn-light">Reset</a>
@@ -62,7 +54,6 @@
                     <th>Place Name</th>
                     <th>Latitude</th>
                     <th>Longitude</th>
-                    <th>Category</th>
                     <th>Check-ins</th>
                     <th>Users Currently There</th>
                     <th class="text-end">Action</th>
@@ -74,9 +65,6 @@
                         <td class="fw-semibold">{{ $place->name }}</td>
                         <td>{{ number_format((float) $place->latitude, 6) }}</td>
                         <td>{{ number_format((float) $place->longitude, 6) }}</td>
-                        <td>
-                            <span class="badge badge-soft-primary">{{ $categories[$place->category] ?? ucfirst($place->category) }}</span>
-                        </td>
                         <td>{{ number_format($place->check_ins_count) }}</td>
                         <td>{{ number_format((int) $place->current_users_count) }}</td>
                         <td class="text-end">
@@ -85,7 +73,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No places found.</td>
+                        <td colspan="6" class="text-center text-muted py-4">No places found.</td>
                     </tr>
                 @endforelse
             </tbody>

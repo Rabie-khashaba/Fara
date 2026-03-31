@@ -24,14 +24,6 @@
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
                 </div>
                 <div class="col-lg-6 mb-3">
-                    <label class="form-label">Category</label>
-                    <select name="category" class="form-select @error('category') is-invalid @enderror" required>
-                        @foreach ($categories as $value => $label)
-                            <option value="{{ $value }}" @selected(old('category', 'other') === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-lg-6 mb-3">
                     <label class="form-label">Latitude</label>
                     <input type="number" step="0.0000001" name="latitude" class="form-control @error('latitude') is-invalid @enderror" value="{{ old('latitude') }}" required>
                 </div>

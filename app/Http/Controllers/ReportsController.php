@@ -32,18 +32,10 @@ class ReportsController extends Controller
                 $search = trim((string) $request->string('search'));
                 $query->where('name', 'like', "%{$search}%");
             })
-            ->when($request->filled('category'), fn (Builder $query) => $query->where('category', $request->string('category')))
             ->orderByDesc('filtered_check_ins_count')
             ->orderBy('name')
             ->paginate(10)
             ->withQueryString();
-
-        $categories = [
-                'restaurant' => 'Restaurant',
-                'cafe' => 'Cafe',
-                'mall' => 'Mall',
-                'other' => 'Other',
-            ];
 
         return view('reports.index', [
             'reportTitle' => 'Top Places Report',
@@ -52,10 +44,8 @@ class ReportsController extends Controller
             'dateTo' => $dateTo->toDateString(),
             'resetRoute' => route('reports.top-places'),
             'filterAction' => route('reports.top-places'),
-            'filters' => ['search', 'category', 'date_range'],
-            'filterOptions' => [
-                'categories' => $categories,
-            ],
+            'filters' => ['search', 'date_range'],
+            'filterOptions' => [],
             'summaryCards' => [[
                 'label' => 'Check-ins In Range',
                 'value' => number_format(
@@ -64,10 +54,9 @@ class ReportsController extends Controller
                     ->count()
                 ),
             ]],
-            'columns' => ['Place', 'Category', 'Country', 'Check-ins'],
+            'columns' => ['Place', 'Country', 'Check-ins'],
             'rows' => $places->through(fn ($place) => [
                 $place->name,
-                $categories[$place->category] ?? ucfirst($place->category),
                 $place->country_code,
                 number_format($place->filtered_check_ins_count),
             ]),

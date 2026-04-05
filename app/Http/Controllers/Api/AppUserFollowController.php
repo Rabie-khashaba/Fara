@@ -19,57 +19,39 @@ class AppUserFollowController extends Controller
     public function followers(int $appUserId): JsonResponse
     {
         $targetAppUser = AppUser::query()
-            ->with(['followers.follower:id,name,username,email,phone'])
+            ->with(['followers.follower:id,name,username,email,phone,profile_image'])
             ->findOrFail($appUserId);
 
-        $followers = $targetAppUser->followers->map(fn ($follow) => [
-            'follow_id' => $follow->id,
-            'followed_at' => $follow->created_at,
-            'user' => [
-                'id' => $follow->follower?->id,
-                'name' => $follow->follower?->name,
-                'username' => $follow->follower?->username,
-                'email' => $follow->follower?->email,
-                'phone' => $follow->follower?->phone,
-            ],
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'app_user_id' => $targetAppUser->id,
-                'count' => $followers->count(),
-                'followers' => $followers,
-            ],
-        ]);
+        return response()->json($this->followersPayload($targetAppUser));
     }
 
     public function followingList(int $appUserId): JsonResponse
     {
         $targetAppUser = AppUser::query()
-            ->with(['following.following:id,name,username,email,phone'])
+            ->with(['following.following:id,name,username,email,phone,profile_image'])
             ->findOrFail($appUserId);
 
-        $following = $targetAppUser->following->map(fn ($follow) => [
-            'follow_id' => $follow->id,
-            'followed_at' => $follow->created_at,
-            'user' => [
-                'id' => $follow->following?->id,
-                'name' => $follow->following?->name,
-                'username' => $follow->following?->username,
-                'email' => $follow->following?->email,
-                'phone' => $follow->following?->phone,
-            ],
-        ]);
+        return response()->json($this->followingPayload($targetAppUser));
+    }
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'app_user_id' => $targetAppUser->id,
-                'count' => $following->count(),
-                'following' => $following,
-            ],
-        ]);
+    public function myFollowers(Request $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+
+        $appUser->load(['followers.follower:id,name,username,email,phone,profile_image']);
+
+        return response()->json($this->followersPayload($appUser));
+    }
+
+    public function myFollowing(Request $request): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+
+        $appUser->load(['following.following:id,name,username,email,phone,profile_image']);
+
+        return response()->json($this->followingPayload($appUser));
     }
 
     public function store(Request $request, int $appUserId): JsonResponse
@@ -135,5 +117,58 @@ class AppUserFollowController extends Controller
             'status' => true,
             'message' => 'User unfollowed successfully',
         ]);
+    }
+
+    private function followersPayload(AppUser $targetAppUser): array
+    {
+        $followers = $targetAppUser->followers->map(fn ($follow) => [
+            'follow_id' => $follow->id,
+            'followed_at' => $follow->created_at,
+            'user' => $this->formatUser($follow->follower),
+        ]);
+
+        return [
+            'status' => true,
+            'data' => [
+                'app_user_id' => $targetAppUser->id,
+                'count' => $followers->count(),
+                'followers' => $followers,
+            ],
+        ];
+    }
+
+    private function followingPayload(AppUser $targetAppUser): array
+    {
+        $following = $targetAppUser->following->map(fn ($follow) => [
+            'follow_id' => $follow->id,
+            'followed_at' => $follow->created_at,
+            'user' => $this->formatUser($follow->following),
+        ]);
+
+        return [
+            'status' => true,
+            'data' => [
+                'app_user_id' => $targetAppUser->id,
+                'count' => $following->count(),
+                'following' => $following,
+            ],
+        ];
+    }
+
+    private function formatUser(?AppUser $appUser): ?array
+    {
+        if (! $appUser) {
+            return null;
+        }
+
+        return [
+            'id' => $appUser->id,
+            'name' => $appUser->name,
+            'username' => $appUser->username,
+            'email' => $appUser->email,
+            'phone' => $appUser->phone,
+            'image' => $appUser->profile_image_url,
+            'profile_image_url' => $appUser->profile_image_url,
+        ];
     }
 }

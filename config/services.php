@@ -51,12 +51,17 @@ return [
 
     'apple' => [
         'client_id' => env('APPLE_CLIENT_ID'),
+        'allowed_client_ids' => array_values(array_filter(array_map(
+            static fn (string $value): string => trim($value),
+            explode(',', (string) env('APPLE_ALLOWED_CLIENT_IDS', env('APPLE_CLIENT_ID', '')))
+        ))),
         'client_secret' => env('APPLE_CLIENT_SECRET'),
         'key_id' => env('APPLE_KEY_ID'),
         'team_id' => env('APPLE_TEAM_ID'),
         'private_key' => env('APPLE_PRIVATE_KEY'),
         'passphrase' => env('APPLE_PASSPHRASE'),
         'signer' => env('APPLE_SIGNER'),
+        'issuer' => env('APPLE_ISSUER', 'https://appleid.apple.com'),
         'redirect' => env('APPLE_REDIRECT_URI'),
         'app_redirect' => env('APPLE_APP_REDIRECT_URI'),
     ],

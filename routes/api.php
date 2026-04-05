@@ -44,8 +44,8 @@ Route::middleware('auth:sanctum')->prefix('app-user/auth')->group(function (): v
 
 Route::get('app-user/profile/{appUserId}', [AppUserProfileController::class, 'show']);
 Route::get('app-user/users', [AppUserDirectoryController::class, 'index']);
-Route::get('app-user/followers/{appUserId}', [AppUserFollowController::class, 'followers']);
-Route::get('app-user/following/{appUserId}', [AppUserFollowController::class, 'followingList']);
+Route::get('app-user/profile/{appUserId}/followers', [AppUserFollowController::class, 'followers']);
+Route::get('app-user/profile/{appUserId}/following', [AppUserFollowController::class, 'followingList']);
 Route::get('app-user/posts/all', [AppUserPostController::class, 'allPosts']);
 Route::get('app-user/shared-posts', [AppUserSharedPostController::class, 'all']);
 Route::get('app-user/shared-posts/{id}', [AppUserSharedPostController::class, 'show']);
@@ -63,6 +63,8 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
 
     Route::get('my-likes', [AppUserPostLikeController::class, 'myLikes']);
     Route::get('my-saved-posts', [AppUserSavedPostController::class, 'mySaved']);
+    Route::get('my-followers', [AppUserFollowController::class, 'myFollowers']);
+    Route::get('my-following', [AppUserFollowController::class, 'myFollowing']);
 
     Route::get('following-posts', [AppUserPostController::class, 'followingPosts']);
     Route::post('posts', [AppUserPostController::class, 'store']);

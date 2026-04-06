@@ -43,10 +43,7 @@ class AppUserReportController extends Controller
             ->count();
 
         if ($reportsCount >= $this->blockThreshold() && $reportedUser->is_active) {
-            $reportedUser->update([
-                'is_active' => false,
-                'inactive_reason' => AppUser::INACTIVE_REASON_REPORTS,
-            ]);
+            $reportedUser->deactivate(AppUser::INACTIVE_REASON_REPORTS);
         }
 
         $reportedUser->refresh();

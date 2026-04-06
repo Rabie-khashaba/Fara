@@ -163,6 +163,15 @@ class AppUserController extends Controller
         }
 
         $app_user->update($data);
+
+        if ($request->has('is_active')) {
+            if ($data['is_active']) {
+                $app_user->activateAccount();
+            } else {
+                $app_user->deactivate(AppUser::INACTIVE_REASON_ADMIN);
+            }
+        }
+
         $app_user->packages()->sync($request->input('package_ids', []));
 
         return redirect()->route('app-users.show', $app_user)->with('status', 'App user updated successfully.');
@@ -170,10 +179,11 @@ class AppUserController extends Controller
 
     public function toggleStatus(AppUser $app_user): RedirectResponse
     {
-        $app_user->update([
-            'is_active' => ! $app_user->is_active,
-            'inactive_reason' => $app_user->is_active ? AppUser::INACTIVE_REASON_ADMIN : null,
-        ]);
+        if ($app_user->is_active) {
+            $app_user->deactivate(AppUser::INACTIVE_REASON_ADMIN);
+        } else {
+            $app_user->activateAccount();
+        }
 
         return redirect()->back()->with('status', 'App user status updated successfully.');
     }

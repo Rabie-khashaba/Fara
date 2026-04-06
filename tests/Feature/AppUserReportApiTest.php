@@ -100,6 +100,7 @@ class AppUserReportApiTest extends TestCase
         config(['moderation.app_user_report_block_threshold' => 2]);
 
         $reported = $this->createAppUser('Reported', 'reported3', '01020000006');
+        $reported->createToken('reported-user-token');
         $firstReporter = $this->createAppUser('Reporter A', 'reportera', '01020000007');
         $secondReporter = $this->createAppUser('Reporter B', 'reporterb', '01020000008');
 
@@ -121,6 +122,10 @@ class AppUserReportApiTest extends TestCase
         $this->assertDatabaseHas('app_users', [
             'id' => $reported->id,
             'is_active' => false,
+        ]);
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_type' => AppUser::class,
+            'tokenable_id' => $reported->id,
         ]);
     }
 

@@ -161,6 +161,24 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserReport::class, 'reported_app_user_id');
     }
 
+    public function deactivate(string $reason): void
+    {
+        $this->forceFill([
+            'is_active' => false,
+            'inactive_reason' => $reason,
+        ])->save();
+
+        $this->tokens()->delete();
+    }
+
+    public function activateAccount(): void
+    {
+        $this->forceFill([
+            'is_active' => true,
+            'inactive_reason' => null,
+        ])->save();
+    }
+
     public function likedPosts(): HasManyThrough
     {
         return $this->hasManyThrough(

@@ -13,9 +13,11 @@ return new class extends Migration
             $table->string('category')->default('other')->after('place_name');
         });
 
-        DB::table('app_user_check_ins')
-            ->join('app_user_check_in_cities', 'app_user_check_ins.app_user_check_in_city_id', '=', 'app_user_check_in_cities.id')
-            ->update(['app_user_check_ins.category' => DB::raw('app_user_check_in_cities.category')]);
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::table('app_user_check_ins')
+                ->join('app_user_check_in_cities', 'app_user_check_ins.app_user_check_in_city_id', '=', 'app_user_check_in_cities.id')
+                ->update(['app_user_check_ins.category' => DB::raw('app_user_check_in_cities.category')]);
+        }
 
         Schema::table('app_user_check_in_cities', function (Blueprint $table) {
             $table->dropColumn('category');

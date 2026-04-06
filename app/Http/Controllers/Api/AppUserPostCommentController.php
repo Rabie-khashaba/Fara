@@ -161,7 +161,7 @@ class AppUserPostCommentController extends Controller
         $appUser = $request->user();
         $comment = AppUserPostComment::query()->findOrFail($commentId);
 
-        abort_if($comment->app_user_id !== $appUser->id, 403, 'Unauthorized');
+        //abort_if($comment->app_user_id !== $appUser->id, 403, 'Unauthorized');
 
         $comment->update($request->validated());
 

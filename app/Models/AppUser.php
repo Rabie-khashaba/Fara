@@ -147,6 +147,16 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserConversationMessage::class, 'sender_app_user_id');
     }
 
+    public function submittedReports(): HasMany
+    {
+        return $this->hasMany(AppUserReport::class, 'reporter_app_user_id');
+    }
+
+    public function receivedReports(): HasMany
+    {
+        return $this->hasMany(AppUserReport::class, 'reported_app_user_id');
+    }
+
     public function likedPosts(): HasManyThrough
     {
         return $this->hasManyThrough(

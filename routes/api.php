@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AppUserPostCommentLikeController;
 use App\Http\Controllers\Api\AppUserPostController;
 use App\Http\Controllers\Api\AppUserPostLikeController;
 use App\Http\Controllers\Api\AppUserProfileController;
+use App\Http\Controllers\Api\AppUserReportController;
 use App\Http\Controllers\Api\AppUserSavedPostController;
 use App\Http\Controllers\Api\AppUserSharedPostController;
 use App\Http\Controllers\Api\AppUserSocialAuthController;
@@ -49,6 +50,7 @@ Route::get('app-user/profile/{appUserId}/following', [AppUserFollowController::c
 Route::get('app-user/posts/all', [AppUserPostController::class, 'allPosts']);
 Route::get('app-user/shared-posts', [AppUserSharedPostController::class, 'all']);
 Route::get('app-user/shared-posts/{id}', [AppUserSharedPostController::class, 'show']);
+Route::get('app-user/report-types', [AppUserReportController::class, 'types']);
 
 Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('profile', [AppUserProfileController::class, 'me']);
@@ -94,6 +96,7 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
 
     Route::post('follow/{appUserId}', [AppUserFollowController::class, 'store']);
     Route::delete('follow/{appUserId}', [AppUserFollowController::class, 'destroy']);
+    Route::post('reports/users/{appUserId}', [AppUserReportController::class, 'store']);
 
     Route::get('activities', [AppUserActivityController::class, 'index']);
 

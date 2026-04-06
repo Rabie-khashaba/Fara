@@ -8,11 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement('ALTER TABLE app_users MODIFY phone VARCHAR(255) NULL');
     }
 
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement('ALTER TABLE app_users MODIFY phone VARCHAR(255) NOT NULL');
     }
 };

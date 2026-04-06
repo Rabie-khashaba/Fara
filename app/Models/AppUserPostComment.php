@@ -14,6 +14,7 @@ class AppUserPostComment extends Model
     protected $fillable = [
         'app_user_post_id',
         'app_user_id',
+        'parent_comment_id',
         'comment',
     ];
 
@@ -25,6 +26,16 @@ class AppUserPostComment extends Model
     public function appUser(): BelongsTo
     {
         return $this->belongsTo(AppUser::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_comment_id');
+    }
+
+    public function replies(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_comment_id');
     }
 
     public function likes(): HasMany

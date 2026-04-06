@@ -27,12 +27,18 @@ class AppUserPostCommentController extends Controller
         /** @var AppUser|null $appUser */
         $appUser = request()->user();
         $post = AppUserPost::query()->visible()->findOrFail($id);
-        $comments = $this->withViewerState($post->comments(), $appUser)
-            ->with('appUser')
-            ->withCount('likes')
+        $comments = $this->withViewerState($post->comments()->whereNull('parent_comment_id'), $appUser)
+            ->with([
+                'appUser',
+                'replies' => fn ($query) => $this->withViewerState($query, $appUser)
+                    ->with('appUser')
+                    ->withCount('likes')
+                    ->latest(),
+            ])
+            ->withCount(['likes', 'replies'])
             ->latest()
             ->get()
-            ->each(fn ($comment) => $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false));
+            ->each(fn ($comment) => $this->prepareCommentForResponse($comment));
 
         return response()->json([
             'status' => true,
@@ -82,14 +88,70 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment added successfully',
-            'data' => tap(
-                $this->withViewerState(AppUserPostComment::query(), $appUser)
-                    ->whereKey($comment->id)
-                    ->with('appUser')
-                    ->withCount('likes')
-                    ->firstOrFail(),
-                fn ($freshComment) => $freshComment->liked_by_me = (bool) ($freshComment->liked_by_me ?? false)
-            ),
+            'data' => $this->loadCommentResponse($comment->id, $appUser),
+        ], 201);
+    }
+
+    public function show(Request $request, int $commentId): JsonResponse
+    {
+        /** @var AppUser|null $appUser */
+        $appUser = $request->user();
+
+        return response()->json([
+            'status' => true,
+            'data' => $this->loadCommentResponse($commentId, $appUser),
+        ]);
+    }
+
+    public function reply(StoreCommentRequest $request, int $commentId): JsonResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $parentComment = AppUserPostComment::query()
+            ->with(['post.appUser', 'appUser'])
+            ->findOrFail($commentId);
+
+        $reply = AppUserPostComment::query()->create([
+            'app_user_post_id' => $parentComment->app_user_post_id,
+            'app_user_id' => $appUser->id,
+            'parent_comment_id' => $parentComment->id,
+            'comment' => $request->validated()['comment'],
+        ]);
+
+        AppUserActivity::create([
+            'app_user_id' => $appUser->id,
+            'type' => 'replied_to_comment',
+            'app_user_post_id' => $parentComment->app_user_post_id,
+            'subject_app_user_id' => $parentComment->app_user_id,
+            'description' => 'Replied to a comment',
+            'meta' => [
+                'subject_name' => $parentComment->appUser?->name,
+                'post_excerpt' => $parentComment->post?->content,
+                'comment_excerpt' => $reply->comment,
+                'parent_comment_excerpt' => $parentComment->comment,
+            ],
+        ]);
+
+        if ($parentComment->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $parentComment->appUser,
+                $appUser,
+                $appUser->name,
+                $reply->comment,
+                [
+                    'type' => 'comment_reply',
+                    'post_id' => $parentComment->app_user_post_id,
+                    'comment_id' => $parentComment->id,
+                    'reply_id' => $reply->id,
+                    'sender_app_user_id' => $appUser->id,
+                ]
+            );
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Reply added successfully',
+            'data' => $this->loadCommentResponse($reply->id, $appUser),
         ], 201);
     }
 
@@ -119,14 +181,7 @@ class AppUserPostCommentController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Comment updated successfully',
-            'data' => tap(
-                $this->withViewerState(AppUserPostComment::query(), $appUser)
-                    ->whereKey($comment->id)
-                    ->with('appUser')
-                    ->withCount('likes')
-                    ->firstOrFail(),
-                fn ($freshComment) => $freshComment->liked_by_me = (bool) ($freshComment->liked_by_me ?? false)
-            ),
+            'data' => $this->loadCommentResponse($comment->id, $appUser),
         ]);
     }
 
@@ -168,5 +223,38 @@ class AppUserPostCommentController extends Controller
         return $query->withExists([
             'likes as liked_by_me' => fn ($nested) => $nested->where('app_user_id', $appUser->id),
         ]);
+    }
+
+    private function loadCommentResponse(int $commentId, ?AppUser $appUser): AppUserPostComment
+    {
+        $comment = $this->withViewerState(AppUserPostComment::query(), $appUser)
+            ->whereKey($commentId)
+            ->with([
+                'appUser',
+                'parent.appUser',
+                'replies' => fn ($query) => $this->withViewerState($query, $appUser)
+                    ->with('appUser')
+                    ->withCount('likes')
+                    ->latest(),
+            ])
+            ->withCount(['likes', 'replies'])
+            ->firstOrFail();
+
+        $this->prepareCommentForResponse($comment);
+
+        return $comment;
+    }
+
+    private function prepareCommentForResponse(AppUserPostComment $comment): void
+    {
+        $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false);
+
+        if (! $comment->relationLoaded('replies')) {
+            return;
+        }
+
+        $comment->replies->each(function (AppUserPostComment $reply) {
+            $reply->liked_by_me = (bool) ($reply->liked_by_me ?? false);
+        });
     }
 }

@@ -85,6 +85,8 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
 
     Route::get('posts/{id}/comments', [AppUserPostCommentController::class, 'index']);
     Route::post('posts/{id}/comments', [AppUserPostCommentController::class, 'store']);
+    Route::get('comments/{commentId}', [AppUserPostCommentController::class, 'show']);
+    Route::post('comments/{commentId}/reply', [AppUserPostCommentController::class, 'reply']);
     Route::post('comments/{commentId}/likes', [AppUserPostCommentLikeController::class, 'store']);
     Route::delete('comments/{commentId}/likes', [AppUserPostCommentLikeController::class, 'destroy']);
     Route::patch('comments/{commentId}', [AppUserPostCommentController::class, 'update']);

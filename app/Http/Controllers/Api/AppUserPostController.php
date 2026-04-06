@@ -206,9 +206,16 @@ class AppUserPostController extends Controller
 
         $post->load([
             'appUser',
-            'comments' => fn ($query) => $this->withCommentViewerState($query, $appUser)
-                ->with('appUser')
-                ->withCount('likes'),
+            'comments' => fn ($query) => $this->withCommentViewerState($query->whereNull('parent_comment_id'), $appUser)
+                ->with([
+                    'appUser',
+                    'replies' => fn ($replyQuery) => $this->withCommentViewerState($replyQuery, $appUser)
+                        ->with('appUser')
+                        ->withCount('likes')
+                        ->latest(),
+                ])
+                ->withCount(['likes', 'replies'])
+                ->latest(),
             'repostedPost.appUser',
         ])->loadCount(['likes', 'comments', 'reposts', 'sharedPosts', 'savedPosts']);
 
@@ -437,6 +444,12 @@ class AppUserPostController extends Controller
     private function ensureCommentViewerStateDefaults($comment): void
     {
         $comment->liked_by_me = (bool) ($comment->liked_by_me ?? false);
+
+        if ($comment->relationLoaded('replies')) {
+            $comment->replies->each(function ($reply) {
+                $reply->liked_by_me = (bool) ($reply->liked_by_me ?? false);
+            });
+        }
     }
 
     private function createCheckInFromPostData(AppUser $appUser, array $data): void

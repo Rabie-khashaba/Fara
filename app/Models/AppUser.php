@@ -14,6 +14,9 @@ class AppUser extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const INACTIVE_REASON_ADMIN = 'admin';
+    public const INACTIVE_REASON_REPORTS = 'reports';
+
     protected $appends = [
         'profile_image_url',
         'cover_photo_url',
@@ -31,6 +34,7 @@ class AppUser extends Authenticatable
         'provider',
         'provider_id',
         'is_active',
+        'inactive_reason',
         'fcm_token',
         'profile_image',
         'cover_photo',

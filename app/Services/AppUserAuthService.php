@@ -109,6 +109,7 @@ class AppUserAuthService
             'otp' => null,
             'expired_otp_at' => null,
             'is_active' => true,
+            'inactive_reason' => null,
         ]);
 
         if (! empty($pendingRegistration['fcm_token'])) {
@@ -218,7 +219,7 @@ class AppUserAuthService
         }
 
         if (! $appUser->is_active) {
-            return ['error' => 'This account is blocked', 'code' => 403];
+            return $this->inactiveAccountError($appUser);
         }
 
         if ($fcmToken !== null) {
@@ -260,7 +261,7 @@ class AppUserAuthService
         });
 
         if (! $appUser->is_active) {
-            return ['error' => 'This account is blocked', 'code' => 403];
+            return $this->inactiveAccountError($appUser);
         }
 
         $token = $appUser->createToken('app-user-token')->plainTextToken;
@@ -301,7 +302,7 @@ class AppUserAuthService
         });
 
         if (! $appUser->is_active) {
-            return ['error' => 'This account is blocked', 'code' => 403];
+            return $this->inactiveAccountError($appUser);
         }
 
         $token = $appUser->createToken('app-user-token')->plainTextToken;
@@ -458,6 +459,22 @@ class AppUserAuthService
             'phone' => $appUser->phone,
             'provider' => $appUser->provider,
             'is_active' => $appUser->is_active,
+            'inactive_reason' => $appUser->inactive_reason,
+        ];
+    }
+
+    private function inactiveAccountError(AppUser $appUser): array
+    {
+        $reason = $appUser->inactive_reason;
+
+        return [
+            'error' => match ($reason) {
+                AppUser::INACTIVE_REASON_REPORTS => 'This account is inactive because it was blocked due to reports.',
+                AppUser::INACTIVE_REASON_ADMIN => 'This account is inactive because it was deactivated by admin.',
+                default => 'This account is inactive.',
+            },
+            'code' => 403,
+            'inactive_reason' => $reason,
         ];
     }
 
@@ -601,6 +618,7 @@ class AppUserAuthService
             'otp' => null,
             'expired_otp_at' => null,
             'is_active' => true,
+            'inactive_reason' => null,
         ]);
     }
 

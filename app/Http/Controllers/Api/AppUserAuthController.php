@@ -107,10 +107,18 @@ class AppUserAuthController extends Controller
     private function jsonResponse(array $result, int $successStatus = 200): JsonResponse
     {
         if (isset($result['error'])) {
-            return response()->json([
+            $payload = [
                 'status' => false,
                 'message' => $result['error'],
-            ], $result['code'] ?? 400);
+            ];
+
+            if (array_key_exists('inactive_reason', $result)) {
+                $payload['data'] = [
+                    'inactive_reason' => $result['inactive_reason'],
+                ];
+            }
+
+            return response()->json($payload, $result['code'] ?? 400);
         }
 
         return response()->json([

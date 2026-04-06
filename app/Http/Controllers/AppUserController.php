@@ -73,6 +73,7 @@ class AppUserController extends Controller
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['inactive_reason'] = $data['is_active'] ? null : AppUser::INACTIVE_REASON_ADMIN;
 
         if ($request->hasFile('profile_image')) {
             $data['profile_image'] = $request->file('profile_image')->store('app-user-profiles', 'public');
@@ -139,7 +140,11 @@ class AppUserController extends Controller
             unset($data['password']);
         }
 
-        $data['is_active'] = $request->boolean('is_active');
+        $data['is_active'] = $request->boolean('is_active', $app_user->is_active);
+
+        if ($request->has('is_active')) {
+            $data['inactive_reason'] = $data['is_active'] ? null : AppUser::INACTIVE_REASON_ADMIN;
+        }
 
         if ($request->hasFile('profile_image')) {
             if ($app_user->profile_image) {
@@ -167,6 +172,7 @@ class AppUserController extends Controller
     {
         $app_user->update([
             'is_active' => ! $app_user->is_active,
+            'inactive_reason' => $app_user->is_active ? AppUser::INACTIVE_REASON_ADMIN : null,
         ]);
 
         return redirect()->back()->with('status', 'App user status updated successfully.');

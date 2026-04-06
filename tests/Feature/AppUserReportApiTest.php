@@ -25,6 +25,8 @@ class AppUserReportApiTest extends TestCase
 
     public function test_app_user_can_report_another_app_user(): void
     {
+        config(['moderation.app_user_report_block_threshold' => 5]);
+
         $reporter = $this->createAppUser('Reporter', 'reporter1', '01020000001');
         $reported = $this->createAppUser('Reported', 'reported1', '01020000002');
 
@@ -49,6 +51,8 @@ class AppUserReportApiTest extends TestCase
 
     public function test_reporting_same_user_twice_updates_existing_report_instead_of_creating_duplicate(): void
     {
+        config(['moderation.app_user_report_block_threshold' => 5]);
+
         $reporter = $this->createAppUser('Reporter', 'reporter2', '01020000003');
         $reported = $this->createAppUser('Reported', 'reported2', '01020000004');
 
@@ -78,6 +82,8 @@ class AppUserReportApiTest extends TestCase
 
     public function test_app_user_cannot_report_self(): void
     {
+        config(['moderation.app_user_report_block_threshold' => 5]);
+
         $appUser = $this->createAppUser('Self Reporter', 'selfreporter', '01020000005');
 
         Sanctum::actingAs($appUser);

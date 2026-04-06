@@ -82,6 +82,48 @@ class AppUserAuthApiTest extends TestCase
             ->assertJsonStructure(['status', 'message', 'data' => ['token', 'user' => ['id', 'full_name', 'username', 'phone']]]);
     }
 
+    public function test_app_user_login_returns_reports_inactive_reason_when_user_was_blocked_by_reports(): void
+    {
+        AppUser::query()->create([
+            'name' => 'Blocked User',
+            'username' => 'blockedreports',
+            'phone' => '01000000100',
+            'password' => 'secret123',
+            'is_active' => false,
+            'inactive_reason' => AppUser::INACTIVE_REASON_REPORTS,
+        ]);
+
+        $this->postJson('/api/app-user/auth/login', [
+            'phone' => '01000000100',
+            'password' => 'secret123',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('status', false)
+            ->assertJsonPath('message', 'This account is inactive because it was blocked due to reports.')
+            ->assertJsonPath('data.inactive_reason', AppUser::INACTIVE_REASON_REPORTS);
+    }
+
+    public function test_app_user_login_returns_admin_inactive_reason_when_user_was_deactivated_by_admin(): void
+    {
+        AppUser::query()->create([
+            'name' => 'Inactive User',
+            'username' => 'blockedadmin',
+            'phone' => '01000000101',
+            'password' => 'secret123',
+            'is_active' => false,
+            'inactive_reason' => AppUser::INACTIVE_REASON_ADMIN,
+        ]);
+
+        $this->postJson('/api/app-user/auth/login', [
+            'phone' => '01000000101',
+            'password' => 'secret123',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('status', false)
+            ->assertJsonPath('message', 'This account is inactive because it was deactivated by admin.')
+            ->assertJsonPath('data.inactive_reason', AppUser::INACTIVE_REASON_ADMIN);
+    }
+
     public function test_app_user_login_can_store_fcm_token_when_provided(): void
     {
         $appUser = AppUser::query()->create([

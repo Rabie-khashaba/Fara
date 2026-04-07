@@ -234,12 +234,50 @@ class AppUserPostController extends Controller
         $appUser = $request->user();
         $post = AppUserPost::query()->findOrFail($id);
 
-       // abort_if($post->app_user_id !== $appUser->id, 403, 'Unauthorized');
+        abort_if($post->app_user_id !== $appUser->id, 403, 'Unauthorized');
 
         $data = $request->validated();
 
+        $existingImages = collect(is_array($post->image) ? $post->image : array_filter([$post->image]))
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values();
+
+        $removedImages = collect($request->input('removed_images', []))
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values();
+
+        if ($removedImages->isNotEmpty()) {
+            $imagesToDelete = $existingImages->intersect($removedImages)->values();
+
+            if ($imagesToDelete->isNotEmpty()) {
+                $this->deletePostImages($imagesToDelete->all());
+            }
+
+            $existingImages = $existingImages->reject(
+                fn ($path) => $removedImages->contains($path)
+            )->values();
+        }
+
+        $newImages = collect();
+
         if ($request->hasFile('image')) {
-            $data['image'] = $this->storeImages($request->file('image'), $post, false);
+            $files = $request->file('image');
+
+            if ($files instanceof UploadedFile) {
+                $files = [$files];
+            }
+
+            $newImages = collect($files)
+                ->filter(fn ($file) => $file instanceof UploadedFile)
+                ->map(fn (UploadedFile $file) => $this->storeImageAsWebp($file))
+                ->values();
+        }
+
+        if ($removedImages->isNotEmpty() || $newImages->isNotEmpty()) {
+            $data['image'] = $existingImages
+                ->concat($newImages)
+                ->values()
+                ->all();
         }
 
         if ($request->has('is_ghost')) {

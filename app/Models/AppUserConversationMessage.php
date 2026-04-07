@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,17 +15,28 @@ class AppUserConversationMessage extends Model
         'sender_app_user_id',
         'type',
         'body',
+        'image',
+        'video',
+        'contact',
+        'latitude',
+        'longitude',
         'meta',
         'edited_at',
         'deleted_at',
+        'video_opened_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'image' => 'array',
+            'contact' => 'array',
+            'latitude' => 'float',
+            'longitude' => 'float',
             'meta' => 'array',
             'edited_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'video_opened_at' => 'datetime',
         ];
     }
 

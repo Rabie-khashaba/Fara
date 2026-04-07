@@ -18,9 +18,12 @@ use App\Models\AppUserNotification;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AppUserChatController extends Controller
 {
@@ -194,12 +197,40 @@ class AppUserChatController extends Controller
         $appUser = $request->user();
         $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
         $data = $request->validated();
+        $storedImages = $this->storeChatImages($request->file('image'));
+        $storedVideo = $this->storeChatVideo($request->file('video'));
+        $contact = isset($data['contact']) && is_array($data['contact']) ? $data['contact'] : null;
+        $latitude = isset($data['latitude']) ? (float) $data['latitude'] : null;
+        $longitude = isset($data['longitude']) ? (float) $data['longitude'] : null;
+        $type = $this->resolveMessageType(
+            $data['type'] ?? null,
+            $storedImages,
+            $storedVideo,
+            $contact,
+            $latitude,
+            $longitude
+        );
 
-        $message = DB::transaction(function () use ($conversation, $appUser, $data) {
+        $message = DB::transaction(function () use (
+            $conversation,
+            $appUser,
+            $data,
+            $storedImages,
+            $storedVideo,
+            $contact,
+            $latitude,
+            $longitude,
+            $type
+        ) {
             $message = $conversation->messages()->create([
                 'sender_app_user_id' => $appUser->id,
-                'type' => $data['type'] ?? 'text',
-                'body' => $data['body'],
+                'type' => $type,
+                'body' => (string) ($data['body'] ?? ''),
+                'image' => $storedImages ?: null,
+                'video' => $storedVideo,
+                'contact' => $contact,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
             ]);
 
             $conversation->update([
@@ -224,6 +255,45 @@ class AppUserChatController extends Controller
             'message' => 'Message sent successfully',
             'data' => $this->formatMessage($message, $appUser),
         ], 201);
+    }
+
+    public function showVideo(Request $request, int $conversationId, int $messageId): BinaryFileResponse
+    {
+        /** @var AppUser $appUser */
+        $appUser = $request->user();
+        $conversation = $this->getAuthorizedConversation($conversationId, $appUser->id);
+
+        $message = AppUserConversationMessage::query()
+            ->whereKey($messageId)
+            ->where('app_user_conversation_id', $conversation->id)
+            ->with('sender:id,name,username,profile_image')
+            ->firstOrFail();
+
+        abort_if(! $message->video, 404, 'Video has been opened.');
+
+        $videoPath = $message->video;
+        abort_if(! Storage::disk('public')->exists($videoPath), 404, 'Video file not found.');
+
+        $fullPath = Storage::disk('public')->path($videoPath);
+        $mimeType = Storage::disk('public')->mimeType($videoPath) ?: 'video/mp4';
+
+        $message->update([
+            'video' => null,
+            'video_opened_at' => now(),
+            'meta' => array_merge($message->meta ?? [], [
+                'video_consumed' => true,
+                'video_consumed_at' => now()->toISOString(),
+                'video_consumed_by_app_user_id' => $appUser->id,
+            ]),
+        ]);
+
+        $message->refresh()->load('sender:id,name,username,profile_image');
+        broadcast(new ChatMessageUpdated($message));
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . basename($videoPath) . '"',
+        ])->deleteFileAfterSend(true);
     }
 
     public function updateMessage(UpdateMessageRequest $request, int $conversationId, int $messageId): JsonResponse
@@ -415,6 +485,21 @@ class AppUserChatController extends Controller
             'sender' => $this->formatUser($message->sender),
             'type' => $message->type,
             'body' => $message->body,
+            'image' => $message->image,
+            'image_urls' => collect($message->image ?? [])
+                ->map(fn ($path) => $this->toPublicUrl($path))
+                ->filter()
+                ->values(),
+            'video' => $message->video,
+            'video_url' => $message->video
+                ? route('app-user.chats.messages.video.show', [
+                    'conversationId' => $message->app_user_conversation_id,
+                    'messageId' => $message->id,
+                ])
+                : null,
+            'contact' => $message->contact,
+            'latitude' => $message->latitude,
+            'longitude' => $message->longitude,
             'meta' => $message->meta,
             'is_mine' => $message->sender_app_user_id === $authUser->id,
             'is_read' => $isReadByAllParticipants,
@@ -499,5 +584,74 @@ class AppUserChatController extends Controller
                 // Ignore notification failures so sending the chat message still succeeds.
             }
         }
+    }
+
+    private function storeChatImages(array|UploadedFile|null $images): array
+    {
+        if (! $images) {
+            return [];
+        }
+
+        $files = $images instanceof UploadedFile ? [$images] : $images;
+
+        return collect($files)
+            ->filter(fn ($file) => $file instanceof UploadedFile)
+            ->map(fn (UploadedFile $file) => $file->store('chat-images', 'public'))
+            ->values()
+            ->all();
+    }
+
+    private function storeChatVideo(?UploadedFile $video): ?string
+    {
+        if (! $video instanceof UploadedFile) {
+            return null;
+        }
+
+        return $video->store('chat-videos', 'public');
+    }
+
+    private function resolveMessageType(
+        ?string $requestedType,
+        array $images,
+        ?string $video,
+        ?array $contact,
+        ?float $latitude,
+        ?float $longitude
+    ): string {
+        if (is_string($requestedType) && $requestedType !== '') {
+            return $requestedType;
+        }
+
+        $parts = array_filter([
+            ! empty($images) ? 'image' : null,
+            $video ? 'video' : null,
+            $contact ? 'contact' : null,
+            $latitude !== null && $longitude !== null ? 'location' : null,
+        ]);
+
+        return match (count($parts)) {
+            0 => 'text',
+            1 => array_values($parts)[0],
+            default => 'mixed',
+        };
+    }
+
+    private function toPublicUrl($value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $value)) {
+            return $value;
+        }
+
+        $path = ltrim($value, '/');
+
+        if (str_starts_with($path, 'storage/')) {
+            return rtrim(config('app.url'), '/') . '/' . $path;
+        }
+
+        return rtrim(config('app.url'), '/') . '/storage/app/public/' . $path;
     }
 }

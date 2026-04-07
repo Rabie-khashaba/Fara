@@ -106,6 +106,8 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('chats/{conversationId}', [AppUserChatController::class, 'show']);
     Route::get('chats/{conversationId}/messages', [AppUserChatController::class, 'messages']);
     Route::post('chats/{conversationId}/messages', [AppUserChatController::class, 'storeMessage']);
+    Route::patch('chats/{conversationId}/messages/{messageId}', [AppUserChatController::class, 'updateMessage']);
+    Route::delete('chats/{conversationId}/messages/{messageId}', [AppUserChatController::class, 'destroyMessage']);
     Route::patch('chats/{conversationId}/read', [AppUserChatController::class, 'markAsRead']);
 
     //check-in

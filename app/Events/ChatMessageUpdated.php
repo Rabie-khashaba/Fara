@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ChatMessageSent implements ShouldBroadcastNow
+class ChatMessageUpdated implements ShouldBroadcastNow
 {
     use Dispatchable;
     use InteractsWithSockets;
@@ -29,16 +29,16 @@ class ChatMessageSent implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'chat.message.sent';
+        return 'chat.message.updated';
     }
 
     public function broadcastWith(): array
     {
         return [
             'message' => ChatMessagePayload::fromMessage($this->message),
-            'is_new_message' => true,
-            'sync_chat_list' => true,
-            'sync_unread_count' => true,
+            'is_new_message' => false,
+            'sync_chat_list' => false,
+            'sync_unread_count' => false,
         ];
     }
 }

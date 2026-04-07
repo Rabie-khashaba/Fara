@@ -44,4 +44,11 @@ class AppUserConversation extends Model
     {
         return $this->hasOne(AppUserConversationMessage::class)->latestOfMany();
     }
+
+    public function latestVisibleMessage(): HasOne
+    {
+        return $this->hasOne(AppUserConversationMessage::class)
+            ->whereNull('deleted_at')
+            ->latestOfMany();
+    }
 }

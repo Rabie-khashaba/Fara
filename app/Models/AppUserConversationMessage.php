@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,12 +15,16 @@ class AppUserConversationMessage extends Model
         'type',
         'body',
         'meta',
+        'edited_at',
+        'deleted_at',
     ];
 
     protected function casts(): array
     {
         return [
             'meta' => 'array',
+            'edited_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

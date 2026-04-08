@@ -9,6 +9,7 @@ use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\SettingPermissionController;
 use App\Http\Controllers\SettingCheckInController;
 use App\Http\Controllers\SettingRoleController;
+use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,14 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
     Route::post('notifications/send-all', [NotificationController::class, 'storeAll'])->name('notifications.store-all');
+
+    Route::get('support-tickets', [SupportTicketController::class, 'index'])->name('support-tickets.index');
+    Route::get('support-tickets/create', [SupportTicketController::class, 'create'])->name('support-tickets.create');
+    Route::post('support-tickets', [SupportTicketController::class, 'store'])->name('support-tickets.store');
+    Route::get('support-tickets/{support_ticket}', [SupportTicketController::class, 'show'])->name('support-tickets.show');
+    Route::post('support-tickets/{support_ticket}/messages', [SupportTicketController::class, 'storeMessage'])->name('support-tickets.messages.store');
+    Route::patch('support-tickets/{support_ticket}/close', [SupportTicketController::class, 'close'])->name('support-tickets.close');
+    Route::patch('support-tickets/{support_ticket}/reopen', [SupportTicketController::class, 'reopen'])->name('support-tickets.reopen');
 
     Route::resource('settings/roles', SettingRoleController::class)->names('settings.roles');
     Route::get('settings/check-ins', [SettingCheckInController::class, 'edit'])->name('settings.checkins.edit');

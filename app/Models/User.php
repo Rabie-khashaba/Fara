@@ -57,4 +57,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserSocialAccount::class);
     }
+
+    public function assignedSupportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'assigned_user_id');
+    }
+
+    public function createdSupportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'created_by_user_id');
+    }
+
+    public function supportMessages(): HasMany
+    {
+        return $this->hasMany(SupportTicketMessage::class, 'sender_user_id');
+    }
 }

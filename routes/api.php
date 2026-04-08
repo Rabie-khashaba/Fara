@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\AppUserReportController;
 use App\Http\Controllers\Api\AppUserSavedPostController;
 use App\Http\Controllers\Api\AppUserSharedPostController;
 use App\Http\Controllers\Api\AppUserSocialAuthController;
+use App\Http\Controllers\Api\AppUserSupportTicketController;
 use App\Http\Controllers\Api\FirebaseNotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -111,6 +112,13 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::patch('chats/{conversationId}/messages/{messageId}', [AppUserChatController::class, 'updateMessage']);
     Route::delete('chats/{conversationId}/messages/{messageId}', [AppUserChatController::class, 'destroyMessage']);
     Route::patch('chats/{conversationId}/read', [AppUserChatController::class, 'markAsRead']);
+
+    Route::get('support/tickets', [AppUserSupportTicketController::class, 'index']);
+    Route::post('support/tickets', [AppUserSupportTicketController::class, 'store']);
+    Route::get('support/tickets/{ticketId}', [AppUserSupportTicketController::class, 'show']);
+    Route::post('support/tickets/{ticketId}/messages', [AppUserSupportTicketController::class, 'storeMessage']);
+    Route::patch('support/tickets/{ticketId}/close', [AppUserSupportTicketController::class, 'close']);
+    Route::patch('support/tickets/{ticketId}/reopen', [AppUserSupportTicketController::class, 'reopen']);
 
     //check-in
     Route::get('check-in-cities', [AppUserCheckInController::class, 'cities']);

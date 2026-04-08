@@ -161,6 +161,21 @@ class AppUser extends Authenticatable
         return $this->hasMany(AppUserReport::class, 'reported_app_user_id');
     }
 
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+    public function createdSupportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'created_by_app_user_id');
+    }
+
+    public function supportMessages(): HasMany
+    {
+        return $this->hasMany(SupportTicketMessage::class, 'sender_app_user_id');
+    }
+
     public function deactivate(string $reason): void
     {
         $this->forceFill([

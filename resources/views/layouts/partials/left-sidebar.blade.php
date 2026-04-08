@@ -132,6 +132,15 @@
                 </li>
             @endcan
 
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('support-tickets.index') }}">
+                    <span class="nav-icon">
+                        <i class="bx bx-message-rounded-detail text-primary"></i>
+                    </span>
+                    <span class="nav-text"> Support Tickets </span>
+                </a>
+            </li>
+
 
             <!-- end Demo Menu Item -->
         </ul>

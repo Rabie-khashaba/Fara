@@ -271,29 +271,36 @@ class AppUserChatController extends Controller
 
         abort_if(! $message->video, 404, 'Video has been opened.');
 
+        $isSender = (int) $message->sender_app_user_id === (int) $appUser->id;
+        $hasRecipientConsumedVideo = $this->hasRecipientConsumedVideo($message);
+
+        abort_if(! $isSender && $hasRecipientConsumedVideo, 404, 'Video has been opened.');
+
         $videoPath = $message->video;
-        abort_if(! Storage::disk('public')->exists($videoPath), 404, 'Video file not found.');
+        abort_if(! Storage::disk('public')->exists($videoPath), 404, 'Video has been opened.');
 
         $fullPath = Storage::disk('public')->path($videoPath);
         $mimeType = Storage::disk('public')->mimeType($videoPath) ?: 'video/mp4';
 
-        $message->update([
-            'video' => null,
-            'video_opened_at' => now(),
-            'meta' => array_merge($message->meta ?? [], [
-                'video_consumed' => true,
-                'video_consumed_at' => now()->toISOString(),
-                'video_consumed_by_app_user_id' => $appUser->id,
-            ]),
-        ]);
+        if (! $isSender) {
+            $message->update([
+                'video' => null,
+                'video_opened_at' => now(),
+                'meta' => array_merge($message->meta ?? [], [
+                    'video_consumed' => true,
+                    'video_consumed_at' => now()->toISOString(),
+                    'video_consumed_by_app_user_id' => $appUser->id,
+                ]),
+            ]);
 
-        $message->refresh()->load('sender:id,name,username,profile_image');
-        broadcast(new ChatMessageUpdated($message));
+            $message->refresh()->load('sender:id,name,username,profile_image');
+            broadcast(new ChatMessageUpdated($message));
+        }
 
         return response()->file($fullPath, [
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . basename($videoPath) . '"',
-        ])->deleteFileAfterSend(true);
+        ])->deleteFileAfterSend(! $isSender);
     }
 
     public function updateMessage(UpdateMessageRequest $request, int $conversationId, int $messageId): JsonResponse
@@ -490,8 +497,8 @@ class AppUserChatController extends Controller
                 ->map(fn ($path) => $this->toPublicUrl($path))
                 ->filter()
                 ->values(),
-            'video' => $message->video,
-            'video_url' => $message->video
+            'video' => $this->canAccessVideo($message, $authUser) ? $message->video : null,
+            'video_url' => $this->canAccessVideo($message, $authUser)
                 ? route('app-user.chats.messages.video.show', [
                     'conversationId' => $message->app_user_conversation_id,
                     'messageId' => $message->id,
@@ -634,6 +641,24 @@ class AppUserChatController extends Controller
             1 => array_values($parts)[0],
             default => 'mixed',
         };
+    }
+
+    private function canAccessVideo(AppUserConversationMessage $message, AppUser $authUser): bool
+    {
+        if (! $message->video) {
+            return false;
+        }
+
+        if ((int) $message->sender_app_user_id === (int) $authUser->id) {
+            return true;
+        }
+
+        return ! $this->hasRecipientConsumedVideo($message);
+    }
+
+    private function hasRecipientConsumedVideo(AppUserConversationMessage $message): bool
+    {
+        return (bool) data_get($message->meta, 'video_consumed', false);
     }
 
     private function toPublicUrl($value): ?string

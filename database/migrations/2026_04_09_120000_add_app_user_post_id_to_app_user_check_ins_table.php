@@ -13,7 +13,7 @@ return new class extends Migration
                 ->nullable()
                 ->after('app_user_id')
                 ->constrained('app_user_posts')
-                ->nullOnDelete();
+                ->cascadeOnDelete();
         });
     }
 

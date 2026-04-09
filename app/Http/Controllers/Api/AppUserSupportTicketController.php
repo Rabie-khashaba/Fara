@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\SupportTicket\StoreSupportTicketByPhoneRequest;
 use App\Http\Requests\Api\SupportTicket\StoreSupportTicketMessageRequest;
 use App\Http\Requests\Api\SupportTicket\StoreSupportTicketRequest;
 use App\Models\AppUser;
@@ -44,31 +45,24 @@ class AppUserSupportTicketController extends Controller
         $appUser = $request->user();
         $data = $request->validated();
 
-        $ticket = DB::transaction(function () use ($appUser, $data) {
-            $ticket = SupportTicket::query()->create([
-                'ticket_number' => $this->generateTicketNumber(),
-                'app_user_id' => $appUser->id,
-                'created_by_app_user_id' => $appUser->id,
-                'subject' => $data['subject'],
-                'status' => SupportTicket::STATUS_OPEN,
-            ]);
+        $ticket = $this->createSupportTicketForAppUser($appUser, $data['subject'], $data['message']);
 
-            $message = $ticket->messages()->create([
-                'sender_app_user_id' => $appUser->id,
-                'body' => $data['message'],
-            ]);
+        return response()->json([
+            'status' => true,
+            'message' => 'Support ticket created successfully',
+            'data' => $this->formatTicketDetails($ticket, $appUser),
+        ], 201);
+    }
 
-            $ticket->update([
-                'last_message_at' => $message->created_at,
-            ]);
+    public function storeByPhone(StoreSupportTicketByPhoneRequest $request): JsonResponse
+    {
+        $data = $request->validated();
 
-            return $ticket->load([
-                'appUser:id,name,username,profile_image',
-                'assignedUser:id,name,phone',
-                'messages.senderUser:id,name',
-                'messages.senderAppUser:id,name,username,profile_image',
-            ]);
-        });
+        $appUser = AppUser::query()
+            ->where('phone', $data['phone'])
+            ->firstOrFail();
+
+        $ticket = $this->createSupportTicketForAppUser($appUser, $data['subject'], $data['message']);
 
         return response()->json([
             'status' => true,
@@ -192,6 +186,35 @@ class AppUserSupportTicketController extends Controller
                 'latestMessage.senderAppUser:id,name,username,profile_image',
             ])
             ->firstOrFail();
+    }
+
+    private function createSupportTicketForAppUser(AppUser $appUser, string $subject, string $messageBody): SupportTicket
+    {
+        return DB::transaction(function () use ($appUser, $subject, $messageBody) {
+            $ticket = SupportTicket::query()->create([
+                'ticket_number' => $this->generateTicketNumber(),
+                'app_user_id' => $appUser->id,
+                'created_by_app_user_id' => $appUser->id,
+                'subject' => $subject,
+                'status' => SupportTicket::STATUS_OPEN,
+            ]);
+
+            $message = $ticket->messages()->create([
+                'sender_app_user_id' => $appUser->id,
+                'body' => $messageBody,
+            ]);
+
+            $ticket->update([
+                'last_message_at' => $message->created_at,
+            ]);
+
+            return $ticket->load([
+                'appUser:id,name,username,profile_image',
+                'assignedUser:id,name,phone',
+                'messages.senderUser:id,name',
+                'messages.senderAppUser:id,name,username,profile_image',
+            ]);
+        });
     }
 
     private function formatTicketSummary(SupportTicket $ticket, AppUser $authUser): array

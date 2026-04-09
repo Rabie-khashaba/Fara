@@ -52,6 +52,7 @@ Route::get('app-user/posts/all', [AppUserPostController::class, 'allPosts']);
 Route::get('app-user/shared-posts', [AppUserSharedPostController::class, 'all']);
 Route::get('app-user/shared-posts/{id}', [AppUserSharedPostController::class, 'show']);
 Route::get('app-user/report-types', [AppUserReportController::class, 'types']);
+Route::post('app-user/support/tickets/by-phone', [AppUserSupportTicketController::class, 'storeByPhone']);
 
 Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::get('profile', [AppUserProfileController::class, 'me']);
@@ -138,3 +139,4 @@ Route::middleware('auth:sanctum')->prefix('app-user')->group(function (): void {
     Route::post('notifications/firebase/send-bulk', [FirebaseNotificationController::class, 'sendBulk']);
 
 });
+

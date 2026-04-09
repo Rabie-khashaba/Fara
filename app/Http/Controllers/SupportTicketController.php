@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AppUser;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\AppUserPushNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,11 @@ use Illuminate\View\View;
 
 class SupportTicketController extends Controller
 {
+    public function __construct(
+        private readonly AppUserPushNotificationService $pushNotificationService
+    ) {
+    }
+
     public function index(Request $request): View
     {
         $query = SupportTicket::query()
@@ -120,17 +126,34 @@ class SupportTicketController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        DB::transaction(function () use ($support_ticket, $data, $user) {
-            $support_ticket->messages()->create([
+        $message = DB::transaction(function () use ($support_ticket, $data, $user) {
+            $message = $support_ticket->messages()->create([
                 'sender_user_id' => $user?->id,
                 'body' => $data['message'],
             ]);
 
             $support_ticket->update([
                 'assigned_user_id' => $support_ticket->assigned_user_id ?? $user?->id,
-                'last_message_at' => now(),
+                'last_message_at' => $message->created_at,
             ]);
+
+            return $message;
         });
+
+        if ($support_ticket->appUser) {
+            $this->pushNotificationService->sendToUser(
+                $support_ticket->appUser,
+                null,
+                'Support team',
+                "The support team has replied to your ticket: {$support_ticket->subject}.",
+                [
+                    'type' => 'support',
+                    'support_ticket_id' => $support_ticket->id,
+                    'support_message_id' => $message->id,
+                    'sender_user_id' => $user?->id,
+                ]
+            );
+        }
 
         return redirect()
             ->route('support-tickets.show', $support_ticket)

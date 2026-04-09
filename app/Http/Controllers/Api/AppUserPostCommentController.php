@@ -77,7 +77,8 @@ class AppUserPostCommentController extends Controller
                 $appUser->name,
                 $comment->comment,
                 [
-                    'type' => 'post_comment',
+                    'type' => 'post_interaction',
+                    'interaction_type' => 'comment',
                     'post_id' => $post->id,
                     'comment_id' => $comment->id,
                     'sender_app_user_id' => $appUser->id,
@@ -139,7 +140,8 @@ class AppUserPostCommentController extends Controller
                 $appUser->name,
                 $reply->comment,
                 [
-                    'type' => 'comment_reply',
+                    'type' => 'post_interaction',
+                    'interaction_type' => 'reply',
                     'post_id' => $parentComment->app_user_post_id,
                     'comment_id' => $parentComment->id,
                     'reply_id' => $reply->id,

@@ -87,7 +87,8 @@ class AppUserSharedPostController extends Controller
                 $appUser->name,
                 'shared your post',
                 [
-                    'type' => 'post_share',
+                    'type' => 'post_interaction',
+                    'interaction_type' => 'share',
                     'post_id' => $post->id,
                     'shared_post_id' => $sharedPost->id,
                     'sender_app_user_id' => $appUser->id,

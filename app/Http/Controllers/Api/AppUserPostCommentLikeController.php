@@ -48,7 +48,8 @@ class AppUserPostCommentLikeController extends Controller
                     $appUser->name,
                     'liked your comment',
                     [
-                        'type' => 'comment_like',
+                        'type' => 'post_interaction',
+                        'interaction_type' => 'comment_like',
                         'post_id' => $comment->app_user_post_id,
                         'comment_id' => $comment->id,
                         'sender_app_user_id' => $appUser->id,

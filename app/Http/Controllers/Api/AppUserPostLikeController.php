@@ -68,7 +68,8 @@ class AppUserPostLikeController extends Controller
                 $appUser->name,
                 'liked your post',
                 [
-                    'type' => 'post_like',
+                    'type' => 'post_interaction',
+                    'interaction_type' => 'like',
                     'post_id' => $post->id,
                     'sender_app_user_id' => $appUser->id,
                 ]

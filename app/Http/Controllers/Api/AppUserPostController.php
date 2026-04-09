@@ -339,7 +339,8 @@ class AppUserPostController extends Controller
                 $appUser->name,
                 'reposted your post',
                 [
-                    'type' => 'post_repost',
+                    'type' => 'post_interaction',
+                    'interaction_type' => 'repost',
                     'post_id' => $originalPost->id,
                     'repost_id' => $repost->id,
                     'sender_app_user_id' => $appUser->id,

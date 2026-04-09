@@ -558,8 +558,8 @@ class AppUserChatController extends Controller
         foreach ($deviceTokens as $deviceToken) {
             try {
                 $payload = [
-                    'type' => 'chat_message',
-                    'conversation_id' => $conversation->id,
+                    'type' => 'message',
+                    'chat_id' => $conversation->id,
                     'message_id' => $message->id,
                     'sender_app_user_id' => $sender->id,
                     'sender_name' => $sender->name,

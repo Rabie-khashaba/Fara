@@ -146,7 +146,7 @@ class AppUserPostController extends Controller
         $data['is_ghost'] = $request->boolean('is_ghost', false);
 
         $post = $appUser->posts()->create($data);
-        $this->createCheckInFromPostData($appUser, $data);
+        $this->createCheckInFromPostData($appUser, $data, $post);
 
         $this->logActivity(
             $appUser,
@@ -178,7 +178,7 @@ class AppUserPostController extends Controller
         $data['is_ghost'] = true;
 
         $post = $appUser->posts()->create($data);
-        $this->createCheckInFromPostData($appUser, $data);
+        $this->createCheckInFromPostData($appUser, $data, $post);
 
         $this->logActivity($appUser, 'ghost_post_created', $post, null, 'Created a ghost post');
 
@@ -505,7 +505,7 @@ class AppUserPostController extends Controller
         }
     }
 
-    private function createCheckInFromPostData(AppUser $appUser, array $data): void
+    private function createCheckInFromPostData(AppUser $appUser, array $data, ?AppUserPost $post = null): void
     {
         if (! isset($data['latitude'], $data['longitude'])) {
             return;
@@ -522,6 +522,7 @@ class AppUserPostController extends Controller
 
         AppUserCheckIn::query()->create([
             'app_user_id' => $appUser->id,
+            'app_user_post_id' => $post?->id,
             'app_user_check_in_city_id' => $city->id,
             'place_name' => $data['location'] ?? null,
             'category' => $data['category'] ?? 'other',

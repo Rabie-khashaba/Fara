@@ -199,6 +199,13 @@ class AppUserCheckInController extends Controller
             ->whereBetween('checked_in_at', [$since, $now])
             ->where('latitude', $latitude)
             ->where('longitude', $longitude)
+            ->where(function ($query) {
+                $query
+                    ->whereNull('app_user_post_id')
+                    ->orWhereHas('post', fn ($postQuery) => $postQuery
+                        ->visible()
+                        ->where('is_ghost', false));
+            })
             ->distinct();
 
         $users = AppUser::query()

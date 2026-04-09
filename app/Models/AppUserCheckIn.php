@@ -12,6 +12,7 @@ class AppUserCheckIn extends Model
 
     protected $fillable = [
         'app_user_id',
+        'app_user_post_id',
         'app_user_check_in_city_id',
         'place_name',
         'category',
@@ -32,6 +33,11 @@ class AppUserCheckIn extends Model
     public function appUser(): BelongsTo
     {
         return $this->belongsTo(AppUser::class);
+    }
+
+    public function post(): BelongsTo
+    {
+        return $this->belongsTo(AppUserPost::class, 'app_user_post_id');
     }
 
     public function city(): BelongsTo
